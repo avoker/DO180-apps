@@ -83,3 +83,19 @@ View details with 'oc describe <resource>/<name>' or list resources with 'oc get
 [student@workstation ~]$ 
 
 
+-- templates --
+[student@workstation ~]$ oc get templates
+No resources found in lqtpout-application namespace.
+[student@workstation ~]$ oc get templates -n -h
+Error from server (Forbidden): templates.template.openshift.io is forbidden: User "lqtpou" cannot list resource "templates" in API group "template.openshift.io" in the namespace "-h"
+[student@workstation ~]$ oc get templates -n openshift |wc -l
+105
+[student@workstation ~]$ 
+
+[student@workstation ~]$ oc get template mysql-persistent -n openshift 
+NAME               DESCRIPTION                                                                        PARAMETERS        OBJECTS
+mysql-persistent   MySQL database service, with persistent storage. For more information about u...   9 (3 generated)   4
+[student@workstation ~]$ 
+[student@workstation ~]$ oc get template mysql-persistent -n openshift -o yaml > openshift.mysql-persistent.template
+[student@workstation ~]$ 
+
