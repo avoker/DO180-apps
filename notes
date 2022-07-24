@@ -1,0 +1,85 @@
+[student@workstation multicontainer-application]$ oc create -f todo-app.yml 
+pod/mysql created
+pod/todoapi created
+service/todoapi created
+service/mysql created
+persistentvolumeclaim/dbclaim created
+[student@workstation multicontainer-application]$ 
+
+[student@workstation multicontainer-application]$ oc get pods -w
+NAME      READY   STATUS    RESTARTS   AGE
+mysql     1/1     Running   0          3m4s
+todoapi   1/1     Running   0          3m4s
+^C[student@workstation multicontainer-application]$ podman ps
+CONTAINER ID  IMAGE       COMMAND     CREATED     STATUS      PORTS       NAMES
+[student@workstation multicontainer-application]$ ps -ef|less
+
+After bringing network down:
+[student@workstation multicontainer-application]$ oc get pods -w
+Unable to connect to the server: dial tcp: lookup api.ap410.prod.nextcle.com on 172.25.250.254:53: dial udp 172.25.250.254:53: connect: network is unreachable
+
+--
+[student@workstation ~]$ oc get pods -w
+NAME      READY   STATUS    RESTARTS   AGE
+mysql     1/1     Running   0          20m
+todoapi   1/1     Running   0          20m
+
+--
+[student@workstation ~]$ ss -n4
+Netid   State        Recv-Q   Send-Q       Local Address:Port         Peer Address:Port   Process   
+tcp     CLOSE-WAIT   1        0             172.25.250.9:59384           8.43.85.4:443              
+tcp     ESTAB        0        0             172.25.250.9:57330       169.56.41.206:6443             
+[student@workstation ~]$ sudo lsof -i tcp:59384
+COMMAND    PID    USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+gnome-she 2084 student   21u  IPv4  46134      0t0  TCP workstation.lab.example.com:59384->master2.openshift4.gnome.org:https (CLOSE_WAIT)
+[student@workstation ~]$ sudo lsof -i tcp:57330 -P -n
+COMMAND  PID    USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+oc      2909 student    3u  IPv4  51557      0t0  TCP 172.25.250.9:57330->169.56.41.206:6443 (ESTABLISHED)
+
+--
+[student@workstation ~]$ oc port-forward mysql 3306:3306
+Forwarding from 127.0.0.1:3306 -> 3306
+Forwarding from [::1]:3306 -> 3306
+
+[student@workstation ~]$ ps -ef|grep "oc port-forward"
+student     3172    2817  0 05:39 pts/0    00:00:00 oc port-forward mysql 3306:3306
+[student@workstation ~]$ lsof -p 3172 -n -P
+COMMAND  PID    USER   FD      TYPE DEVICE  SIZE/OFF     NODE NAME
+oc      3172 student  cwd       DIR  252,3      4096 25720657 /home/student
+oc      3172 student  rtd       DIR  252,3       224      128 /
+oc      3172 student  txt       REG  252,3 122824224 17036293 /usr/local/bin/oc
+oc      3172 student  mem       REG  252,3   3167872     6547 /usr/lib64/libc-2.28.so
+oc      3172 student  mem       REG  252,3     28856     6549 /usr/lib64/libdl-2.28.so
+oc      3172 student  mem       REG  252,3    321552     6561 /usr/lib64/libpthread-2.28.so
+oc      3172 student  mem       REG  252,3    278512     6540 /usr/lib64/ld-2.28.so
+oc      3172 student    0u      CHR  136,0       0t0        3 /dev/pts/0
+oc      3172 student    1u      CHR  136,0       0t0        3 /dev/pts/0
+oc      3172 student    2u      CHR  136,0       0t0        3 /dev/pts/0
+oc      3172 student    3u  a_inode   0,14         0    10316 [eventpoll]
+oc      3172 student    4r     FIFO   0,13       0t0    54896 pipe
+oc      3172 student    5w     FIFO   0,13       0t0    54896 pipe
+oc      3172 student    7u     IPv4  55303       0t0      TCP 172.25.250.9:57340->169.56.41.206:6443 (ESTABLISHED)
+oc      3172 student    8u     IPv4  54900       0t0      TCP 127.0.0.1:3306 (LISTEN)
+oc      3172 student    9u     IPv6  54901       0t0      TCP [::1]:3306 (LISTEN)
+[student@workstation ~]$ 
+
+-- expose --
+[student@workstation ~]$ oc expose service todoapi
+route.route.openshift.io/todoapi exposed
+[student@workstation ~]$ oc status |grep -o "http:.*com"
+http://todoapi-lqtpout-application.apps.ap410.prod.nextcle.com
+[student@workstation ~]$ 
+
+[student@workstation ~]$ oc status 
+In project lqtpout-application on server https://api.ap410.prod.nextcle.com:6443
+
+svc/mysql - 172.30.5.221:3306
+  pod/mysql runs registry.redhat.io/rhel8/mysql-80:1
+
+http://todoapi-lqtpout-application.apps.ap410.prod.nextcle.com to pod port 30080 (svc/todoapi)
+  pod/todoapi runs quay.io/redhattraining/do180-todonodejs-12
+
+View details with 'oc describe <resource>/<name>' or list resources with 'oc get all'.
+[student@workstation ~]$ 
+
+
