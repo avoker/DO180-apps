@@ -99,3 +99,219 @@ mysql-persistent   MySQL database service, with persistent storage. For more inf
 [student@workstation ~]$ oc get template mysql-persistent -n openshift -o yaml > openshift.mysql-persistent.template
 [student@workstation ~]$ 
 
+-- oc get all --
+
+[student@workstation ~]$ oc get all
+No resources found in lqtpout-template namespace.
+[student@workstation ~]$ oc project lqtpout-application
+Now using project "lqtpout-application" on server "https://api.ap410.prod.nextcle.com:6443".
+[student@workstation ~]$ oc get all
+NAME                 READY   STATUS      RESTARTS   AGE
+pod/mysql            1/1     Running     0          2d3h
+pod/mysql-1-deploy   0/1     Completed   0          45h
+pod/mysql-1-wk8xv    1/1     Running     0          45h
+pod/todoapi          1/1     Running     0          2d3h
+
+NAME                            DESIRED   CURRENT   READY   AGE
+replicationcontroller/mysql-1   1         1         1       45h
+
+NAME              TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)     AGE
+service/mysql     ClusterIP   172.30.5.221    <none>        3306/TCP    2d3h
+service/todoapi   ClusterIP   172.30.120.15   <none>        30080/TCP   2d3h
+
+NAME                                       REVISION   DESIRED   CURRENT   TRIGGERED BY
+deploymentconfig.apps.openshift.io/mysql   1          1         1         config,image(mysql:8.0-el8)
+
+NAME                               HOST/PORT                                                 PATH   SERVICES   PORT    TERMINATION   WILDCARD
+route.route.openshift.io/todoapi   todoapi-lqtpout-application.apps.ap410.prod.nextcle.com          todoapi    30080                 None
+[student@workstation ~]$ 
+
+---
+/home/student/DO180/labs
+[student@workstation labs]$ cd multicontainer-openshift/
+[student@workstation multicontainer-openshift]$ ll
+total 8
+-rw-rw-r--. 1 student student  300 Mar 22 09:13 db.sql
+-rw-rw-r--. 1 student student 3638 Mar 22 09:13 todo-template.json
+[student@workstation multicontainer-openshift]$ oc process -f todo-template.json |oc create -f -
+W0726 09:37:48.217815    3843 shim_kubectl.go:58] Using non-groupfied API resources is deprecated and will be removed in a future release, update apiVersion to "template.openshift.io/v1" for your resource
+Error from server (AlreadyExists): error when creating "STDIN": pods "mysql" already exists
+Error from server (AlreadyExists): error when creating "STDIN": pods "todoapi" already exists
+Error from server (AlreadyExists): error when creating "STDIN": services "todoapi" already exists
+Error from server (AlreadyExists): error when creating "STDIN": services "mysql" already exists
+Error from server (AlreadyExists): error when creating "STDIN": persistentvolumeclaims "dbclaim" already exists
+[student@workstation multicontainer-openshift]$ oc project
+Using project "lqtpout-application" on server "https://api.ap410.prod.nextcle.com:6443".
+[student@workstation multicontainer-openshift]$ oc get projects
+NAME                  DISPLAY NAME   STATUS
+lqtpout-application                  Active
+lqtpout-template                     Active
+[student@workstation multicontainer-openshift]$ oc project lqtpout-template
+Now using project "lqtpout-template" on server "https://api.ap410.prod.nextcle.com:6443".
+[student@workstation multicontainer-openshift]$ oc process -f todo-template.json |oc create -f -
+W0726 09:38:49.795778    3905 shim_kubectl.go:58] Using non-groupfied API resources is deprecated and will be removed in a future release, update apiVersion to "template.openshift.io/v1" for your resource
+pod/mysql created
+pod/todoapi created
+service/todoapi created
+service/mysql created
+persistentvolumeclaim/dbclaim created
+[student@workstation multicontainer-openshift]$ oc get pods -w
+NAME      READY   STATUS    RESTARTS   AGE
+mysql     1/1     Running   0          30s
+todoapi   1/1     Running   0          30s
+^C[student@workstation multicontainer-openshift]$ oc port-forward mysql 3306:3306
+Forwarding from 127.0.0.1:3306 -> 3306
+Forwarding from [::1]:3306 -> 3306
+Handling connection for 3306
+^C[student@workstation multicontainer-openshift]$ oc port-forward mysql 3306:3306^C
+[student@workstation multicontainer-openshift]$ oc expose service todoapi
+route.route.openshift.io/todoapi exposed
+[student@workstation multicontainer-openshift]$ oc get service
+NAME      TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)     AGE
+mysql     ClusterIP   172.30.88.78   <none>        3306/TCP    5m56s
+todoapi   ClusterIP   172.30.10.80   <none>        30080/TCP   5m56s
+[student@workstation multicontainer-openshift]$ oc get routes
+NAME      HOST/PORT                                              PATH   SERVICES   PORT    TERMINATION   WILDCARD
+todoapi   todoapi-lqtpout-template.apps.ap410.prod.nextcle.com          todoapi    30080                 None
+[student@workstation multicontainer-openshift]$ oc status
+In project lqtpout-template on server https://api.ap410.prod.nextcle.com:6443
+
+svc/mysql - 172.30.88.78:3306
+  pod/mysql runs registry.redhat.io/rhel8/mysql-80:1
+
+http://todoapi-lqtpout-template.apps.ap410.prod.nextcle.com to pod port 30080 (svc/todoapi)
+  pod/todoapi runs quay.io/redhattraining/do180-todonodejs-12
+
+View details with 'oc describe <resource>/<name>' or list resources with 'oc get all'.
+[student@workstation multicontainer-openshift]$ 
+
+
+--- oc logs man
+student@workstation ~]$ oc logs
+error: expected 'logs [-f] [-p] (POD | TYPE/NAME) [-c CONTAINER]'.
+POD or TYPE/NAME is a required argument for the logs command
+See 'oc logs -h' for help and examples
+[student@workstation ~]$ oc logs -h
+Print the logs for a resource.
+
+ Supported resources are builds, build configs (bc), deployment configs (dc), and pods. When a pod is specified and has
+more than one container, the container name should be specified via -c. When a build config or deployment config is
+specified, you can view the logs for a particular version of it via --version.
+
+ If your pod is failing to start, you may need to use the --previous option to see the logs of the last attempt.
+
+Usage:
+  oc logs [-f] [-p] (POD | TYPE/NAME) [-c CONTAINER] [flags]
+
+Examples:
+  # Start streaming the logs of the most recent build of the openldap build config
+  oc logs -f bc/openldap
+  
+  # Start streaming the logs of the latest deployment of the mysql deployment config
+  oc logs -f dc/mysql
+  
+  # Get the logs of the first deployment for the mysql deployment config. Note that logs
+  # from older deployments may not exist either because the deployment was successful
+  # or due to deployment pruning or manual deletion of the deployment
+  oc logs --version=1 dc/mysql
+  
+  # Return a snapshot of ruby-container logs from pod backend
+  oc logs backend -c ruby-container
+  
+  # Start streaming of ruby-container logs from pod backend
+  oc logs -f pod/backend -c ruby-container
+
+Options:
+      --all-containers=false: Get all containers' logs in the pod(s).
+  -c, --container='': Print the logs of this container
+  -f, --follow=false: Specify if the logs should be streamed.
+      --ignore-errors=false: If watching / following pod logs, allow for any errors that occur to be non-fatal
+      --insecure-skip-tls-verify-backend=false: Skip verifying the identity of the kubelet that logs are requested from.
+In theory, an attacker could provide invalid log content back. You might want to use this if your kubelet serving
+certificates have expired.
+      --limit-bytes=0: Maximum bytes of logs to return. Defaults to no limit.
+      --max-log-requests=5: Specify maximum number of concurrent logs to follow when using by a selector. Defaults to 5.
+      --pod-running-timeout=20s: The length of time (like 5s, 2m, or 3h, higher than zero) to wait until at least one
+pod is running
+      --prefix=false: Prefix each log line with the log source (pod name and container name)
+  -p, --previous=false: If true, print the logs for the previous instance of the container in a pod if it exists.
+  -l, --selector='': Selector (label query) to filter on.
+      --since=0s: Only return logs newer than a relative duration like 5s, 2m, or 3h. Defaults to all logs. Only one of
+since-time / since may be used.
+      --since-time='': Only return logs after a specific date (RFC3339). Defaults to all logs. Only one of since-time /
+since may be used.
+      --tail=-1: Lines of recent log file to display. Defaults to -1 with no selector, showing all log lines otherwise
+10, if a selector is provided.
+      --timestamps=false: Include timestamps on each line in the log output
+      --version=0: View the logs of a particular build or deployment by version if greater than zero
+
+Use "oc options" for a list of global command-line options (applies to all commands).
+[student@workstation ~]$ 
+
+-- oc label
+[student@workstation multicontainer-openshift]$ oc label 
+error: one or more resources must be specified as <resource> <name> or <resource>/<name>
+[student@workstation multicontainer-openshift]$ oc label -h
+Update the labels on a resource.
+
+  *  A label key and value must begin with a letter or number, and may contain letters, numbers, hyphens, dots, and
+underscores, up to  63 characters each.
+  *  Optionally, the key can begin with a DNS subdomain prefix and a single '/', like example.com/my-app.
+  *  If --overwrite is true, then existing labels can be overwritten, otherwise attempting to overwrite a label will
+result in an error.
+  *  If --resource-version is specified, then updates will use this resource version, otherwise the existing
+resource-version will be used.
+
+Usage:
+  oc label [--overwrite] (-f FILENAME | TYPE NAME) KEY_1=VAL_1 ... KEY_N=VAL_N [--resource-version=version] [flags]
+
+Examples:
+  # Update pod 'foo' with the label 'unhealthy' and the value 'true'
+  oc label pods foo unhealthy=true
+  
+  # Update pod 'foo' with the label 'status' and the value 'unhealthy', overwriting any existing value
+  oc label --overwrite pods foo status=unhealthy
+  
+  # Update all pods in the namespace
+  oc label pods --all status=unhealthy
+  
+  # Update a pod identified by the type and name in "pod.json"
+  oc label -f pod.json status=unhealthy
+  
+  # Update pod 'foo' only if the resource is unchanged from version 1
+  oc label pods foo status=unhealthy --resource-version=1
+  
+  # Update pod 'foo' by removing a label named 'bar' if it exists
+  # Does not require the --overwrite flag
+  oc label pods foo bar-
+
+Options:
+      --all=false: Select all resources, in the namespace of the specified resource types
+  -A, --all-namespaces=false: If true, check the specified action in all namespaces.
+      --allow-missing-template-keys=true: If true, ignore any errors in templates when a field or map key is missing in
+the template. Only applies to golang and jsonpath output formats.
+      --dry-run='none': Must be "none", "server", or "client". If client strategy, only print the object that would be
+sent, without sending it. If server strategy, submit server-side request without persisting the resource.
+      --field-manager='kubectl-label': Name of the manager used to track field ownership.
+      --field-selector='': Selector (field query) to filter on, supports '=', '==', and '!='.(e.g. --field-selector
+key1=value1,key2=value2). The server only supports a limited number of field queries per type.
+  -f, --filename=[]: Filename, directory, or URL to files identifying the resource to update the labels
+  -k, --kustomize='': Process the kustomization directory. This flag can't be used together with -f or -R.
+      --list=false: If true, display the labels for a given resource.
+      --local=false: If true, label will NOT contact api-server but run locally.
+  -o, --output='': Output format. One of:
+json|yaml|name|go-template|go-template-file|template|templatefile|jsonpath|jsonpath-as-json|jsonpath-file.
+      --overwrite=false: If true, allow labels to be overwritten, otherwise reject label updates that overwrite existing
+labels.
+  -R, --recursive=false: Process the directory used in -f, --filename recursively. Useful when you want to manage
+related manifests organized within the same directory.
+      --resource-version='': If non-empty, the labels update will only succeed if this is the current resource-version
+for the object. Only valid when specifying a single resource.
+  -l, --selector='': Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l
+key1=value1,key2=value2).
+      --show-managed-fields=false: If true, keep the managedFields when printing objects in JSON or YAML format.
+      --template='': Template string or path to template file to use when -o=go-template, -o=go-template-file. The
+template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview].
+
+Use "oc options" for a list of global command-line options (applies to all commands).
+
