@@ -1,3 +1,12 @@
+RHT_OCP4_DEV_PASSWORD=32741f016def488f82d6
+RHT_OCP4_DEV_USER=lqtpou
+RHT_OCP4_GITHUB_USER=avoker
+RHT_OCP4_MASTER_API=https://api.ap410.prod.nextcle.com:6443
+RHT_OCP4_NEXUS_SERVER=nexus-common.apps.ap410.prod.nextcle.com
+RHT_OCP4_QUAY_USER=alan_lu
+RHT_OCP4_WILDCARD_DOMAIN=apps.ap410.prod.nextcle.com
+
+
 [student@workstation multicontainer-application]$ oc create -f todo-app.yml 
 pod/mysql created
 pod/todoapi created
