@@ -1,0 +1,653 @@
+[student@workstation ~]$ cd DO180-apps/
+[student@workstation DO180-apps]$ git co master
+Switched to branch 'master'
+Your branch is up to date with 'origin/master'.
+[student@workstation DO180-apps]$ git br
+  console
+* master
+  s2i
+  testbranch
+[student@workstation DO180-apps]$ git co -b troubleshoot-s2i
+Switched to a new branch 'troubleshoot-s2i'
+[student@workstation DO180-apps]$ git pso troubleshoot-s2i
+Gtk-Message: 08:54:50.057: Failed to load module "canberra-gtk-module"
+Gtk-Message: 08:54:58.421: Failed to load module "canberra-gtk-module"
+Total 0 (delta 0), reused 0 (delta 0), pack-reused 0
+remote: 
+remote: Create a pull request for 'troubleshoot-s2i' on GitHub by visiting:
+remote:      https://github.com/avoker/DO180-apps/pull/new/troubleshoot-s2i
+remote: 
+To https://github.com/avoker/DO180-apps
+ * [new branch]      troubleshoot-s2i -> troubleshoot-s2i
+Branch 'troubleshoot-s2i' set up to track remote branch 'troubleshoot-s2i' from 'origin'.
+[student@workstation DO180-apps]$ oc new-project ^C
+[student@workstation DO180-apps]$ set|grep OCP
+RHT_OCP4_DEV_PASSWORD=32741f016def488f82d6
+RHT_OCP4_DEV_USER=lqtpou
+RHT_OCP4_GITHUB_USER=avoker
+RHT_OCP4_MASTER_API=https://api.ap410.prod.nextcle.com:6443
+RHT_OCP4_NEXUS_SERVER=nexus-common.apps.ap410.prod.nextcle.com
+RHT_OCP4_QUAY_USER=alan_lu
+RHT_OCP4_WILDCARD_DOMAIN=apps.ap410.prod.nextcle.com
+[student@workstation DO180-apps]$ oc new-project lqtpou-nodejs
+Now using project "lqtpou-nodejs" on server "https://api.ap410.prod.nextcle.com:6443".
+
+You can add applications to this project with the 'new-app' command. For example, try:
+
+    oc new-app rails-postgresql-example
+
+to build a new example application in Ruby. Or use kubectl to deploy a simple Kubernetes application:
+
+    kubectl create deployment hello-node --image=k8s.gcr.io/e2e-test-images/agnhost:2.33 -- /agnhost serve-hostname
+
+[student@workstation DO180-apps]$ oc projects
+You have access to the following projects and can switch between them with ' project <projectname>':
+
+    lqtpou-console - avoker-console
+  * lqtpou-nodejs
+
+[student@workstation DO180-apps]$ oc new-app --context-dir=nodejs-helloworld http://github.com/avoker/DO180-apps#troubleshoot-s2i -i nodejs:16-ubi8 --name nodejs-hello --build-env npm_config_registry=http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs
+--> Found image dfd08e2 (5 months old) in image stream "openshift/nodejs" under tag "16-ubi8" for "nodejs:16-ubi8"
+
+    Node.js 16 
+    ---------- 
+    Node.js 16 available as container is a base platform for building and running various Node.js 16 applications and frameworks. Node.js is a platform built on Chrome's JavaScript runtime for easily building fast, scalable network applications. Node.js uses an event-driven, non-blocking I/O model that makes it lightweight and efficient, perfect for data-intensive real-time applications that run across distributed devices.
+
+    Tags: builder, nodejs, nodejs16
+
+    * The source repository appears to match: nodejs
+    * A source build using source code from http://github.com/avoker/DO180-apps#troubleshoot-s2i will be created
+      * The resulting image will be pushed to image stream tag "nodejs-hello:latest"
+      * Use 'oc start-build' to trigger a new build
+
+--> Creating resources ...
+    imagestream.image.openshift.io "nodejs-hello" created
+    buildconfig.build.openshift.io "nodejs-hello" created
+    deployment.apps "nodejs-hello" created
+    service "nodejs-hello" created
+--> Success
+    Build scheduled, use 'oc logs -f buildconfig/nodejs-hello' to track its progress.
+    Application is not exposed. You can expose services to the outside world by executing one or more of the commands below:
+     'oc expose service/nodejs-hello' 
+    Run 'oc status' to view your app.
+[student@workstation DO180-apps]$ oc status
+In project lqtpou-nodejs on server https://api.ap410.prod.nextcle.com:6443
+
+svc/nodejs-hello - 172.30.22.117:8080
+  deployment/nodejs-hello deploys istag/nodejs-hello:latest <-
+    bc/nodejs-hello source builds http://github.com/avoker/DO180-apps#troubleshoot-s2i on openshift/nodejs:16-ubi8 
+      build #1 running for 8 seconds
+    deployment #1 running for 9 seconds - 0/1 pods growing to 1
+
+
+1 info identified, use 'oc status --suggest' to see details.
+[student@workstation DO180-apps]$ oc status
+In project lqtpou-nodejs on server https://api.ap410.prod.nextcle.com:6443
+
+svc/nodejs-hello - 172.30.22.117:8080
+  deployment/nodejs-hello deploys istag/nodejs-hello:latest <-
+    bc/nodejs-hello source builds http://github.com/avoker/DO180-apps#troubleshoot-s2i on openshift/nodejs:16-ubi8 
+      build #1 failed 13 seconds ago - d9f8fe2: . (Student User <student@workstation.lab.example.com>)
+    deployment #1 running for 48 seconds - 0/1 pods growing to 1
+
+Errors:
+  * build/nodejs-hello-1 has failed.
+
+1 error, 1 info identified, use 'oc status --suggest' to see details.
+[student@workstation DO180-apps]$ oc get pods -w
+NAME                   READY   STATUS   RESTARTS   AGE
+nodejs-hello-1-build   0/1     Error    0          4m49s
+^C[student@workstation DO180-apps]$ oc log
+login   logout  logs    
+[student@workstation DO180-apps]$ oc logs nodejs-hello-1-build 
+time="2022-08-12T13:01:56Z" level=info msg="Not using native diff for overlay, this may cause degraded performance for building images: kernel has CONFIG_OVERLAY_FS_REDIRECT_DIR enabled"
+I0812 13:01:56.400659       1 defaults.go:102] Defaulting to storage driver "overlay" with options [mountopt=metacopy=on].
+Caching blobs under "/var/cache/blobs".
+Trying to pull image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb...
+Getting image source signatures
+Copying blob sha256:db75fb66b7757bf7e48909dc7904b4956ab642d5f1d47ddf008855a2f0d7e574
+Copying blob sha256:0d875a68bf996a2e45cd381e8eb3c8b1efa6191d8e3f6ec98be685c7e9823815
+Copying blob sha256:950c796b5dbc22ecb4f4bd661013c9286715d238a0dbdd9b7ed1406c395086a1
+Copying blob sha256:8dfe9326f733b815c486432e93e0a97f03e90e7cc35def9511cd1efa7f917f56
+Copying config sha256:dfd08e2f2735ebcde1863a8446490a6460995b8843cb9cf2c1f2f55a510551eb
+Writing manifest to image destination
+Storing signatures
+STEP 1/9: FROM image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+Generating dockerfile with builder image image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+Adding transient rw bind mount for /run/secrets/rhsm
+STEP 2/9: LABEL "io.openshift.build.commit.ref"="troubleshoot-s2i"       "io.openshift.build.commit.message"="."       "io.openshift.build.source-location"="http://github.com/avoker/DO180-apps"       "io.openshift.build.source-context-dir"="nodejs-helloworld"       "io.openshift.build.image"="image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb"       "io.openshift.build.commit.author"="Student User <student@workstation.lab.example.com>"       "io.openshift.build.commit.date"="Tue Aug 9 09:38:14 2022 -0400"       "io.openshift.build.commit.id"="d9f8fe2316b2c132ff3b7d15bbda282d13e15e17"
+STEP 3/9: ENV OPENSHIFT_BUILD_NAME="nodejs-hello-1"     OPENSHIFT_BUILD_NAMESPACE="lqtpou-nodejs"     OPENSHIFT_BUILD_SOURCE="http://github.com/avoker/DO180-apps"     OPENSHIFT_BUILD_REFERENCE="troubleshoot-s2i"     OPENSHIFT_BUILD_COMMIT="d9f8fe2316b2c132ff3b7d15bbda282d13e15e17"     npm_config_registry="http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs"
+STEP 4/9: USER root
+STEP 5/9: COPY upload/src /tmp/src
+STEP 6/9: RUN chown -R 1001:0 /tmp/src
+STEP 7/9: USER 1001
+STEP 8/9: RUN /usr/libexec/s2i/assemble
+---> Installing application source ...
+---> Installing all dependencies
+npm ERR! code ETARGET
+npm ERR! notarget No matching version found for express@~4.14.2.
+npm ERR! notarget In most cases you or one of your dependencies are requesting
+npm ERR! notarget a package version that doesn't exist.
+
+npm ERR! A complete log of this run can be found in:
+npm ERR!     /opt/app-root/src/.npm/_logs/2022-08-12T13_02_16_167Z-debug.log
+error: build error: error building at STEP "RUN /usr/libexec/s2i/assemble": error while running runtime: exit status 1
+[student@workstation DO180-apps]$ ll /opt/app-root/src/.npm/_logs/2022-08-12T13_02_16_167Z-debug.log
+ls: cannot access '/opt/app-root/src/.npm/_logs/2022-08-12T13_02_16_167Z-debug.log': No such file or directory
+[student@workstation DO180-apps]$ oc logs nodejs-hello-1-build ^C
+[student@workstation DO180-apps]$ oc logs
+error: expected 'logs [-f] [-p] (POD | TYPE/NAME) [-c CONTAINER]'.
+POD or TYPE/NAME is a required argument for the logs command
+See 'oc logs -h' for help and examples
+[student@workstation DO180-apps]$ oc log bc/nodejs-hello
+error: unknown command "log" for "oc"
+
+Did you mean this?
+	login
+	logout
+	logs
+	tag
+[student@workstation DO180-apps]$ oc logs bc/nodejs-hello
+Cloning "http://github.com/avoker/DO180-apps" ...
+	Commit:	d9f8fe2316b2c132ff3b7d15bbda282d13e15e17 (.)
+	Author:	Student User <student@workstation.lab.example.com>
+	Date:	Tue Aug 9 09:38:14 2022 -0400
+time="2022-08-12T13:01:56Z" level=info msg="Not using native diff for overlay, this may cause degraded performance for building images: kernel has CONFIG_OVERLAY_FS_REDIRECT_DIR enabled"
+I0812 13:01:56.400659       1 defaults.go:102] Defaulting to storage driver "overlay" with options [mountopt=metacopy=on].
+Caching blobs under "/var/cache/blobs".
+Trying to pull image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb...
+Getting image source signatures
+Copying blob sha256:db75fb66b7757bf7e48909dc7904b4956ab642d5f1d47ddf008855a2f0d7e574
+Copying blob sha256:0d875a68bf996a2e45cd381e8eb3c8b1efa6191d8e3f6ec98be685c7e9823815
+Copying blob sha256:950c796b5dbc22ecb4f4bd661013c9286715d238a0dbdd9b7ed1406c395086a1
+Copying blob sha256:8dfe9326f733b815c486432e93e0a97f03e90e7cc35def9511cd1efa7f917f56
+Copying config sha256:dfd08e2f2735ebcde1863a8446490a6460995b8843cb9cf2c1f2f55a510551eb
+Writing manifest to image destination
+Storing signatures
+STEP 1/9: FROM image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+Generating dockerfile with builder image image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+Adding transient rw bind mount for /run/secrets/rhsm
+STEP 2/9: LABEL "io.openshift.build.commit.ref"="troubleshoot-s2i"       "io.openshift.build.commit.message"="."       "io.openshift.build.source-location"="http://github.com/avoker/DO180-apps"       "io.openshift.build.source-context-dir"="nodejs-helloworld"       "io.openshift.build.image"="image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb"       "io.openshift.build.commit.author"="Student User <student@workstation.lab.example.com>"       "io.openshift.build.commit.date"="Tue Aug 9 09:38:14 2022 -0400"       "io.openshift.build.commit.id"="d9f8fe2316b2c132ff3b7d15bbda282d13e15e17"
+STEP 3/9: ENV OPENSHIFT_BUILD_NAME="nodejs-hello-1"     OPENSHIFT_BUILD_NAMESPACE="lqtpou-nodejs"     OPENSHIFT_BUILD_SOURCE="http://github.com/avoker/DO180-apps"     OPENSHIFT_BUILD_REFERENCE="troubleshoot-s2i"     OPENSHIFT_BUILD_COMMIT="d9f8fe2316b2c132ff3b7d15bbda282d13e15e17"     npm_config_registry="http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs"
+STEP 4/9: USER root
+STEP 5/9: COPY upload/src /tmp/src
+STEP 6/9: RUN chown -R 1001:0 /tmp/src
+STEP 7/9: USER 1001
+STEP 8/9: RUN /usr/libexec/s2i/assemble
+---> Installing application source ...
+---> Installing all dependencies
+npm ERR! code ETARGET
+npm ERR! notarget No matching version found for express@~4.14.2.
+npm ERR! notarget In most cases you or one of your dependencies are requesting
+npm ERR! notarget a package version that doesn't exist.
+
+npm ERR! A complete log of this run can be found in:
+npm ERR!     /opt/app-root/src/.npm/_logs/2022-08-12T13_02_16_167Z-debug.log
+error: build error: error building at STEP "RUN /usr/libexec/s2i/assemble": error while running runtime: exit status 1
+[student@workstation DO180-apps]$ cd nodejs-helloworld/
+[student@workstation nodejs-helloworld]$ ll
+total 8
+-rw-rw-r--. 1 student student 210 Jul  4 10:22 app.js
+-rw-rw-r--. 1 student student 211 Jul  4 10:22 package.json
+[student@workstation nodejs-helloworld]$ vi package.json 
+[student@workstation nodejs-helloworld]$ git cam "fixed express release version notation format"
+[troubleshoot-s2i 0ce53cf] fixed express release version notation format
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+[student@workstation nodejs-helloworld]$ git push
+Gtk-Message: 09:17:05.650: Failed to load module "canberra-gtk-module"
+Gtk-Message: 09:17:14.509: Failed to load module "canberra-gtk-module"
+Enumerating objects: 7, done.
+Counting objects: 100% (7/7), done.
+Delta compression using up to 2 threads
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (4/4), 414 bytes | 414.00 KiB/s, done.
+Total 4 (delta 2), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (2/2), completed with 2 local objects.
+To https://github.com/avoker/DO180-apps
+   d9f8fe2..0ce53cf  troubleshoot-s2i -> troubleshoot-s2i
+[student@workstation nodejs-helloworld]$ oc start-build bc/nodejs-hello
+build.build.openshift.io/nodejs-hello-2 started
+[student@workstation nodejs-helloworld]$ 
+[student@workstation nodejs-helloworld]$ oc get pod -w
+NAME                   READY   STATUS    RESTARTS   AGE
+nodejs-hello-1-build   0/1     Error     0          18m
+nodejs-hello-2-build   1/1     Running   0          29s
+nodejs-hello-69d76f6fd7-24mwd   0/1     Pending   0          0s
+nodejs-hello-69d76f6fd7-24mwd   0/1     Pending   0          0s
+nodejs-hello-69d76f6fd7-24mwd   0/1     ContainerCreating   0          0s
+nodejs-hello-2-build            0/1     Completed           0          38s
+nodejs-hello-69d76f6fd7-24mwd   0/1     ContainerCreating   0          3s
+nodejs-hello-69d76f6fd7-24mwd   1/1     Running             0          4s
+nodejs-hello-69d76f6fd7-24mwd   0/1     Error               0          5s
+nodejs-hello-69d76f6fd7-24mwd   0/1     Error               1 (2s ago)   6s
+nodejs-hello-69d76f6fd7-24mwd   0/1     CrashLoopBackOff    1 (1s ago)   7s
+nodejs-hello-69d76f6fd7-24mwd   0/1     Error               2 (16s ago)   22s
+nodejs-hello-69d76f6fd7-24mwd   0/1     CrashLoopBackOff    2 (13s ago)   35s
+^C[student@workstation nodejs-helloworld]$ oc get pod
+poddisruptionbudgets.policy                                      podsecuritypolicies.policy
+podmonitors.monitoring.coreos.com                                pods.metrics.k8s.io
+podnetworkconnectivitychecks.controlplane.operator.openshift.io  podtemplates
+pods                                                             
+[student@workstation nodejs-helloworld]$ oc get pods -w
+NAME                            READY   STATUS             RESTARTS      AGE
+nodejs-hello-1-build            0/1     Error              0             19m
+nodejs-hello-2-build            0/1     Completed          0             89s
+nodejs-hello-69d76f6fd7-24mwd   0/1     CrashLoopBackOff   2 (29s ago)   51s
+nodejs-hello-69d76f6fd7-24mwd   0/1     Error              3 (29s ago)   51s
+^C[student@workstation nodejs-helloworld]$ oc logs -f gc/nodejs-hello
+error: the server doesn't have a resource type "gc"
+[student@workstation nodejs-helloworld]$ oc logs -f bc/nodejs-hello
+Cloning "http://github.com/avoker/DO180-apps" ...
+	Commit:	0ce53cf3c9f62178bc3a73d2e96534f8f3303ef0 (fixed express release version notation format)
+	Author:	Student User <student@workstation.lab.example.com>
+	Date:	Fri Aug 12 09:17:00 2022 -0400
+time="2022-08-12T13:19:48Z" level=info msg="Not using native diff for overlay, this may cause degraded performance for building images: kernel has CONFIG_OVERLAY_FS_REDIRECT_DIR enabled"
+I0812 13:19:48.192725       1 defaults.go:102] Defaulting to storage driver "overlay" with options [mountopt=metacopy=on].
+Caching blobs under "/var/cache/blobs".
+Trying to pull image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb...
+Getting image source signatures
+Copying blob sha256:db75fb66b7757bf7e48909dc7904b4956ab642d5f1d47ddf008855a2f0d7e574
+Copying blob sha256:0d875a68bf996a2e45cd381e8eb3c8b1efa6191d8e3f6ec98be685c7e9823815
+Copying blob sha256:8dfe9326f733b815c486432e93e0a97f03e90e7cc35def9511cd1efa7f917f56
+Copying blob sha256:950c796b5dbc22ecb4f4bd661013c9286715d238a0dbdd9b7ed1406c395086a1
+Copying config sha256:dfd08e2f2735ebcde1863a8446490a6460995b8843cb9cf2c1f2f55a510551eb
+Writing manifest to image destination
+Storing signatures
+Generating dockerfile with builder image image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+Adding transient rw bind mount for /run/secrets/rhsm
+STEP 1/9: FROM image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+STEP 2/9: LABEL "io.openshift.build.source-context-dir"="nodejs-helloworld"       "io.openshift.build.image"="image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb"       "io.openshift.build.commit.author"="Student User <student@workstation.lab.example.com>"       "io.openshift.build.commit.date"="Fri Aug 12 09:17:00 2022 -0400"       "io.openshift.build.commit.id"="0ce53cf3c9f62178bc3a73d2e96534f8f3303ef0"       "io.openshift.build.commit.ref"="troubleshoot-s2i"       "io.openshift.build.commit.message"="fixed express release version notation format"       "io.openshift.build.source-location"="http://github.com/avoker/DO180-apps"
+STEP 3/9: ENV OPENSHIFT_BUILD_NAME="nodejs-hello-2"     OPENSHIFT_BUILD_NAMESPACE="lqtpou-nodejs"     OPENSHIFT_BUILD_SOURCE="http://github.com/avoker/DO180-apps"     OPENSHIFT_BUILD_REFERENCE="troubleshoot-s2i"     OPENSHIFT_BUILD_COMMIT="0ce53cf3c9f62178bc3a73d2e96534f8f3303ef0"     npm_config_registry="http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs"
+STEP 4/9: USER root
+STEP 5/9: COPY upload/src /tmp/src
+STEP 6/9: RUN chown -R 1001:0 /tmp/src
+STEP 7/9: USER 1001
+STEP 8/9: RUN /usr/libexec/s2i/assemble
+---> Installing application source ...
+---> Installing all dependencies
+
+added 43 packages in 2s
+---> Building in production mode
+---> Pruning the development dependencies
+
+up to date in 401ms
+/opt/app-root/src/.npm is not a mountpoint
+---> Cleaning the npm cache /opt/app-root/src/.npm
+/tmp is not a mountpoint
+---> Cleaning the /tmp/npm-*
+STEP 9/9: CMD /usr/libexec/s2i/run
+COMMIT temp.builder.openshift.io/lqtpou-nodejs/nodejs-hello-2:e66a2b9c
+time="2022-08-12T13:20:11Z" level=warning msg="Adding metacopy option, configured globally"
+Getting image source signatures
+Copying blob sha256:7699752e6ed63eef234d2736d4e37159a433e18e06cd617e254299f324f41797
+Copying blob sha256:c8013a2772b6673d9b750b6407d4ac4f525a47bb2a5b5bf09ba9bf8e10aea3fc
+Copying blob sha256:346bf184426f05ded9d667abafcba7ba46e36cb00e849117e64ec8110f058052
+Copying blob sha256:b1811b61c2b3ff3ee358d781c5443ad956861eb9cb9832dfc08ecc48d67c9a45
+Copying blob sha256:7d830782cff118712bd4e689c3e64944f6688fcbfb12d6a6ee7daeac3739ca15
+Copying config sha256:6f33bdba4fc05481983761ac2abef7f447b2cf361f06d2920bbf7de83b8d3833
+Writing manifest to image destination
+Storing signatures
+--> 6f33bdba4fc
+Successfully tagged temp.builder.openshift.io/lqtpou-nodejs/nodejs-hello-2:e66a2b9c
+6f33bdba4fc05481983761ac2abef7f447b2cf361f06d2920bbf7de83b8d3833
+
+Pushing image image-registry.openshift-image-registry.svc:5000/lqtpou-nodejs/nodejs-hello:latest ...
+Getting image source signatures
+Copying blob sha256:7d830782cff118712bd4e689c3e64944f6688fcbfb12d6a6ee7daeac3739ca15
+Copying blob sha256:950c796b5dbc22ecb4f4bd661013c9286715d238a0dbdd9b7ed1406c395086a1
+Copying blob sha256:db75fb66b7757bf7e48909dc7904b4956ab642d5f1d47ddf008855a2f0d7e574
+Copying blob sha256:8dfe9326f733b815c486432e93e0a97f03e90e7cc35def9511cd1efa7f917f56
+Copying blob sha256:0d875a68bf996a2e45cd381e8eb3c8b1efa6191d8e3f6ec98be685c7e9823815
+Copying config sha256:6f33bdba4fc05481983761ac2abef7f447b2cf361f06d2920bbf7de83b8d3833
+Writing manifest to image destination
+Storing signatures
+Successfully pushed image-registry.openshift-image-registry.svc:5000/lqtpou-nodejs/nodejs-hello@sha256:514af55b42092b84b105c55bfcff1438a48b5fdb4c7534ea6d551e073851526a
+Push successful
+[student@workstation nodejs-helloworld]$ oc get pods
+NAME                            READY   STATUS             RESTARTS      AGE
+nodejs-hello-1-build            0/1     Error              0             20m
+nodejs-hello-2-build            0/1     Completed          0             2m58s
+nodejs-hello-69d76f6fd7-24mwd   0/1     CrashLoopBackOff   4 (35s ago)   2m20s
+[student@workstation nodejs-helloworld]$ oc logs nodejs-hello-69d76f6fd7-24mwd
+Environment: 
+	DEV_MODE=false
+	NODE_ENV=production
+	DEBUG_PORT=5858
+Launching via npm...
+npm info using npm@8.1.2
+npm info using node@v16.13.1
+npm timing npm:load:whichnode Completed in 0ms
+npm timing config:load:defaults Completed in 1ms
+npm timing config:load:file:/usr/lib/node_modules/npm/npmrc Completed in 1ms
+npm timing config:load:builtin Completed in 1ms
+npm timing config:load:cli Completed in 2ms
+npm timing config:load:env Completed in 0ms
+npm timing config:load:project Completed in 1ms
+npm timing config:load:file:/opt/app-root/src/.npmrc Completed in 0ms
+npm timing config:load:user Completed in 0ms
+npm timing config:load:file:/opt/app-root/src/.npm-global/etc/npmrc Completed in 0ms
+npm timing config:load:global Completed in 0ms
+npm timing config:load:validate Completed in 1ms
+npm timing config:load:credentials Completed in 2ms
+npm timing config:load:setEnvs Completed in 1ms
+npm timing config:load Completed in 10ms
+npm timing npm:load:configload Completed in 11ms
+npm timing npm:load:setTitle Completed in 0ms
+npm timing npm:load:setupLog Completed in 1ms
+npm timing config:load:flatten Completed in 3ms
+npm timing npm:load:cleanupLog Completed in 2ms
+npm timing npm:load:configScope Completed in 0ms
+npm timing npm:load:projectScope Completed in 0ms
+npm timing npm:load Completed in 21ms
+npm timing command:run-script Completed in 31ms
+npm ERR! Missing script: "start"
+npm ERR! 
+npm ERR! Did you mean one of these?
+npm ERR!     npm star # Mark your favorite packages
+npm ERR!     npm stars # View packages marked as favorites
+npm ERR! 
+npm ERR! To see a list of scripts, run:
+npm ERR!   npm run
+npm timing npm Completed in 221ms
+
+npm ERR! A complete log of this run can be found in:
+npm ERR!     /opt/app-root/src/.npm/_logs/2022-08-12T13_21_58_042Z-debug.log
+[student@workstation nodejs-helloworld]$ ll
+total 8
+-rw-rw-r--. 1 student student 210 Jul  4 10:22 app.js
+-rw-rw-r--. 1 student student 210 Aug 12 09:16 package.json
+[student@workstation nodejs-helloworld]$ cat app.js 
+var express = require('express');
+app = express();
+
+app.get('/', function (req, res) {
+  res.send('Hello World!');
+});
+
+app.listen(8080, function () {
+  console.log('Example app listening on port 8080!');
+});
+
+[student@workstation nodejs-helloworld]$ oc get pods
+NAME                            READY   STATUS             RESTARTS      AGE
+nodejs-hello-1-build            0/1     Error              0             23m
+nodejs-hello-2-build            0/1     Completed          0             5m20s
+nodejs-hello-69d76f6fd7-24mwd   0/1     CrashLoopBackOff   5 (84s ago)   4m42s
+[student@workstation nodejs-helloworld]$ oc logs nodejs-hello-2-build
+time="2022-08-12T13:19:48Z" level=info msg="Not using native diff for overlay, this may cause degraded performance for building images: kernel has CONFIG_OVERLAY_FS_REDIRECT_DIR enabled"
+I0812 13:19:48.192725       1 defaults.go:102] Defaulting to storage driver "overlay" with options [mountopt=metacopy=on].
+Caching blobs under "/var/cache/blobs".
+Trying to pull image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb...
+Getting image source signatures
+Copying blob sha256:db75fb66b7757bf7e48909dc7904b4956ab642d5f1d47ddf008855a2f0d7e574
+Copying blob sha256:0d875a68bf996a2e45cd381e8eb3c8b1efa6191d8e3f6ec98be685c7e9823815
+Copying blob sha256:8dfe9326f733b815c486432e93e0a97f03e90e7cc35def9511cd1efa7f917f56
+Copying blob sha256:950c796b5dbc22ecb4f4bd661013c9286715d238a0dbdd9b7ed1406c395086a1
+Copying config sha256:dfd08e2f2735ebcde1863a8446490a6460995b8843cb9cf2c1f2f55a510551eb
+Writing manifest to image destination
+Storing signatures
+Generating dockerfile with builder image image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+Adding transient rw bind mount for /run/secrets/rhsm
+STEP 1/9: FROM image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+STEP 2/9: LABEL "io.openshift.build.source-context-dir"="nodejs-helloworld"       "io.openshift.build.image"="image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb"       "io.openshift.build.commit.author"="Student User <student@workstation.lab.example.com>"       "io.openshift.build.commit.date"="Fri Aug 12 09:17:00 2022 -0400"       "io.openshift.build.commit.id"="0ce53cf3c9f62178bc3a73d2e96534f8f3303ef0"       "io.openshift.build.commit.ref"="troubleshoot-s2i"       "io.openshift.build.commit.message"="fixed express release version notation format"       "io.openshift.build.source-location"="http://github.com/avoker/DO180-apps"
+STEP 3/9: ENV OPENSHIFT_BUILD_NAME="nodejs-hello-2"     OPENSHIFT_BUILD_NAMESPACE="lqtpou-nodejs"     OPENSHIFT_BUILD_SOURCE="http://github.com/avoker/DO180-apps"     OPENSHIFT_BUILD_REFERENCE="troubleshoot-s2i"     OPENSHIFT_BUILD_COMMIT="0ce53cf3c9f62178bc3a73d2e96534f8f3303ef0"     npm_config_registry="http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs"
+STEP 4/9: USER root
+STEP 5/9: COPY upload/src /tmp/src
+STEP 6/9: RUN chown -R 1001:0 /tmp/src
+STEP 7/9: USER 1001
+STEP 8/9: RUN /usr/libexec/s2i/assemble
+---> Installing application source ...
+---> Installing all dependencies
+
+added 43 packages in 2s
+---> Building in production mode
+---> Pruning the development dependencies
+
+up to date in 401ms
+/opt/app-root/src/.npm is not a mountpoint
+---> Cleaning the npm cache /opt/app-root/src/.npm
+/tmp is not a mountpoint
+---> Cleaning the /tmp/npm-*
+STEP 9/9: CMD /usr/libexec/s2i/run
+COMMIT temp.builder.openshift.io/lqtpou-nodejs/nodejs-hello-2:e66a2b9c
+time="2022-08-12T13:20:11Z" level=warning msg="Adding metacopy option, configured globally"
+Getting image source signatures
+Copying blob sha256:7699752e6ed63eef234d2736d4e37159a433e18e06cd617e254299f324f41797
+Copying blob sha256:c8013a2772b6673d9b750b6407d4ac4f525a47bb2a5b5bf09ba9bf8e10aea3fc
+Copying blob sha256:346bf184426f05ded9d667abafcba7ba46e36cb00e849117e64ec8110f058052
+Copying blob sha256:b1811b61c2b3ff3ee358d781c5443ad956861eb9cb9832dfc08ecc48d67c9a45
+Copying blob sha256:7d830782cff118712bd4e689c3e64944f6688fcbfb12d6a6ee7daeac3739ca15
+Copying config sha256:6f33bdba4fc05481983761ac2abef7f447b2cf361f06d2920bbf7de83b8d3833
+Writing manifest to image destination
+Storing signatures
+--> 6f33bdba4fc
+Successfully tagged temp.builder.openshift.io/lqtpou-nodejs/nodejs-hello-2:e66a2b9c
+6f33bdba4fc05481983761ac2abef7f447b2cf361f06d2920bbf7de83b8d3833
+
+Pushing image image-registry.openshift-image-registry.svc:5000/lqtpou-nodejs/nodejs-hello:latest ...
+Getting image source signatures
+Copying blob sha256:7d830782cff118712bd4e689c3e64944f6688fcbfb12d6a6ee7daeac3739ca15
+Copying blob sha256:950c796b5dbc22ecb4f4bd661013c9286715d238a0dbdd9b7ed1406c395086a1
+Copying blob sha256:db75fb66b7757bf7e48909dc7904b4956ab642d5f1d47ddf008855a2f0d7e574
+Copying blob sha256:8dfe9326f733b815c486432e93e0a97f03e90e7cc35def9511cd1efa7f917f56
+Copying blob sha256:0d875a68bf996a2e45cd381e8eb3c8b1efa6191d8e3f6ec98be685c7e9823815
+Copying config sha256:6f33bdba4fc05481983761ac2abef7f447b2cf361f06d2920bbf7de83b8d3833
+Writing manifest to image destination
+Storing signatures
+Successfully pushed image-registry.openshift-image-registry.svc:5000/lqtpou-nodejs/nodejs-hello@sha256:514af55b42092b84b105c55bfcff1438a48b5fdb4c7534ea6d551e073851526a
+Push successful
+[student@workstation nodejs-helloworld]$ oc get pods^C
+[student@workstation nodejs-helloworld]$ ll
+total 8
+-rw-rw-r--. 1 student student 210 Jul  4 10:22 app.js
+-rw-rw-r--. 1 student student 210 Aug 12 09:16 package.json
+[student@workstation nodejs-helloworld]$ ll -a
+total 8
+drwxrwxr-x. 2 student student  40 Aug 12 09:16 .
+drwxrwxr-x. 9 student student 226 Aug 12 08:54 ..
+-rw-rw-r--. 1 student student 210 Jul  4 10:22 app.js
+-rw-rw-r--. 1 student student 210 Aug 12 09:16 package.json
+[student@workstation nodejs-helloworld]$ ll -a ..
+total 44
+drwxrwxr-x.  9 student student   226 Aug 12 08:54 .
+drwx------. 22 student student  4096 Aug 12 09:16 ..
+drwxrwxr-x.  2 student student    23 Jul  4 10:22 example
+drwxrwxr-x.  8 student student   220 Aug 12 09:17 .git
+-rw-rw-r--.  1 student student  4934 Jul 24 10:46 mysql.template.para
+drwxrwxr-x.  2 student student    43 Jul  4 10:22 nodejs-app
+drwxrwxr-x.  2 student student    40 Aug 12 09:16 nodejs-helloworld
+-rw-rw-r--.  1 student student 18047 Aug 12 08:54 notes
+-rw-rw-r--.  1 student student  6860 Jul 24 09:30 openshift.mysql-persistent.template
+drwxrwxr-x.  2 student student    23 Aug 12 08:54 php-helloworld
+-rw-rw-r--.  1 student student    54 Jul  4 10:22 README.md
+drwxrwxr-x.  2 student student    23 Jul  4 10:22 temps
+drwxrwxr-x.  5 student student    51 Jul  4 10:22 todoapp
+[student@workstation nodejs-helloworld]$ pwd
+/home/student/DO180-apps/nodejs-helloworld
+[student@workstation nodejs-helloworld]$ vi ../.git/config 
+[student@workstation nodejs-helloworld]$ cat ~/.gitconfig 
+[alias]
+  # Show verbose output about tags, branches or remotes
+  tags = tag -l
+  branches = branch -a
+  remotes = remote -v
+  # Pretty log output
+  hist = log --graph --pretty=format:'%Cred%h%Creset %s%C(yellow)%d%Creset %Cgreen(%cr)%Creset [%an]' --abbrev-commit --date=relative
+  di = diff
+  ll = log --decorate --oneline --all --graph
+  lo = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+  st = status
+  ss = status -s
+  co = checkout
+  cam = commit -a -m
+  br = branch
+  brc = branch --show-current
+  pso = push --set-upstream origin
+  pdo = push --delete origin
+[color]
+  # Use colors in Git commands that are capable of colored output when outputting to the terminal
+  ui = auto
+[color "branch"]
+  current = yellow reverse
+  local = yellow
+  remote = green
+[color "diff"]
+  meta = yellow bold
+  frag = magenta bold
+  old = red bold
+  new = green bold
+[color "status"]
+  added = yellow
+  changed = green
+  untracked = cyan
+
+[user]
+  name = Student User
+  email = student@workstation.lab.example.com
+[push]
+	default = simple
+[credential]
+	helper = cache
+
+[student@workstation nodejs-helloworld]$ git config --global credential.helper cache
+[student@workstation nodejs-helloworld]$ cat ~/.gitconfig 
+[alias]
+  # Show verbose output about tags, branches or remotes
+  tags = tag -l
+  branches = branch -a
+  remotes = remote -v
+  # Pretty log output
+  hist = log --graph --pretty=format:'%Cred%h%Creset %s%C(yellow)%d%Creset %Cgreen(%cr)%Creset [%an]' --abbrev-commit --date=relative
+  di = diff
+  ll = log --decorate --oneline --all --graph
+  lo = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
+  st = status
+  ss = status -s
+  co = checkout
+  cam = commit -a -m
+  br = branch
+  brc = branch --show-current
+  pso = push --set-upstream origin
+  pdo = push --delete origin
+[color]
+  # Use colors in Git commands that are capable of colored output when outputting to the terminal
+  ui = auto
+[color "branch"]
+  current = yellow reverse
+  local = yellow
+  remote = green
+[color "diff"]
+  meta = yellow bold
+  frag = magenta bold
+  old = red bold
+  new = green bold
+[color "status"]
+  added = yellow
+  changed = green
+  untracked = cyan
+
+[user]
+  name = Student User
+  email = student@workstation.lab.example.com
+[push]
+	default = simple
+[credential]
+	helper = cache
+
+[student@workstation nodejs-helloworld]$ vi package.json 
+[student@workstation nodejs-helloworld]$ git cam "add start script"
+[troubleshoot-s2i 0b1dc6d] add start script
+ 1 file changed, 1 insertion(+)
+[student@workstation nodejs-helloworld]$ git push
+Enumerating objects: 7, done.
+Counting objects: 100% (7/7), done.
+Delta compression using up to 2 threads
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (4/4), 419 bytes | 419.00 KiB/s, done.
+Total 4 (delta 2), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (2/2), completed with 2 local objects.
+To https://github.com/avoker/DO180-apps
+   0ce53cf..0b1dc6d  troubleshoot-s2i -> troubleshoot-s2i
+[student@workstation nodejs-helloworld]$ oc start-build bc/nodejs-hello
+build.build.openshift.io/nodejs-hello-3 started
+[student@workstation nodejs-helloworld]$ oc get pods -w
+NAME                            READY   STATUS             RESTARTS      AGE
+nodejs-hello-1-build            0/1     Error              0             31m
+nodejs-hello-2-build            0/1     Completed          0             13m
+nodejs-hello-3-build            0/1     PodInitializing    0             12s
+nodejs-hello-69d76f6fd7-24mwd   0/1     CrashLoopBackOff   7 (91s ago)   12m
+nodejs-hello-3-build            1/1     Running            0             13s
+nodejs-hello-68976b647-2s7lm    0/1     Pending            0             0s
+nodejs-hello-68976b647-2s7lm    0/1     Pending            0             0s
+nodejs-hello-68976b647-2s7lm    0/1     ContainerCreating   0             0s
+nodejs-hello-3-build            0/1     Completed           0             39s
+nodejs-hello-68976b647-2s7lm    0/1     ContainerCreating   0             2s
+nodejs-hello-68976b647-2s7lm    1/1     Running             0             4s
+nodejs-hello-69d76f6fd7-24mwd   0/1     Terminating         7 (2m1s ago)   13m
+nodejs-hello-69d76f6fd7-24mwd   0/1     Terminating         7              13m
+nodejs-hello-69d76f6fd7-24mwd   0/1     Terminating         7              13m
+nodejs-hello-69d76f6fd7-24mwd   0/1     Terminating         7              13m
+^C[student@workstation nodejs-helloworld]$ oc logs nodejs-hello-68976b647-2s7lm
+Environment: 
+	DEV_MODE=false
+	NODE_ENV=production
+	DEBUG_PORT=5858
+Launching via npm...
+npm info using npm@8.1.2
+npm info using node@v16.13.1
+npm timing npm:load:whichnode Completed in 0ms
+npm timing config:load:defaults Completed in 2ms
+npm timing config:load:file:/usr/lib/node_modules/npm/npmrc Completed in 1ms
+npm timing config:load:builtin Completed in 1ms
+npm timing config:load:cli Completed in 2ms
+npm timing config:load:env Completed in 1ms
+npm timing config:load:project Completed in 1ms
+npm timing config:load:file:/opt/app-root/src/.npmrc Completed in 0ms
+npm timing config:load:user Completed in 0ms
+npm timing config:load:file:/opt/app-root/src/.npm-global/etc/npmrc Completed in 0ms
+npm timing config:load:global Completed in 0ms
+npm timing config:load:validate Completed in 2ms
+npm timing config:load:credentials Completed in 1ms
+npm timing config:load:setEnvs Completed in 1ms
+npm timing config:load Completed in 11ms
+npm timing npm:load:configload Completed in 11ms
+npm timing npm:load:setTitle Completed in 0ms
+npm timing npm:load:setupLog Completed in 1ms
+npm timing config:load:flatten Completed in 3ms
+npm timing npm:load:cleanupLog Completed in 2ms
+npm timing npm:load:configScope Completed in 0ms
+npm timing npm:load:projectScope Completed in 0ms
+npm timing npm:load Completed in 25ms
+
+> nodejs-helloworld@1.0.0 start
+> node app.js
+
+Example app listening on port 8080!
+[student@workstation nodejs-helloworld]$ oc expose svc/nodejs-hello
+route.route.openshift.io/nodejs-hello exposed
+[student@workstation nodejs-helloworld]$ oc describe route.route.openshift.io/nodejs-hello
+Name:			nodejs-hello
+Namespace:		lqtpou-nodejs
+Created:		17 seconds ago
+Labels:			app=nodejs-hello
+			app.kubernetes.io/component=nodejs-hello
+			app.kubernetes.io/instance=nodejs-hello
+			app.kubernetes.io/name=nodejs
+Annotations:		openshift.io/host.generated=true
+Requested Host:		nodejs-hello-lqtpou-nodejs.apps.ap410.prod.nextcle.com
+			   exposed on router default (host router-default.apps.ap410.prod.nextcle.com) 17 seconds ago
+Path:			<none>
+TLS Termination:	<none>
+Insecure Policy:	<none>
+Endpoint Port:		8080-tcp
+
+Service:	nodejs-hello
+Weight:		100 (100%)
+Endpoints:	10.131.1.4:8080
+[student@workstation nodejs-helloworld]$ oc get routes
+NAME           HOST/PORT                                                PATH   SERVICES       PORT       TERMINATION   WILDCARD
+nodejs-hello   nodejs-hello-lqtpou-nodejs.apps.ap410.prod.nextcle.com          nodejs-hello   8080-tcp                 None
+[student@workstation nodejs-helloworld]$ curl -w "\n" nodejs-hello-lqtpou-nodejs.apps.ap410.prod.nextcle.com
+Hello World!
+[student@workstation nodejs-helloworld]$ 
+
