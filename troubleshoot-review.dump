@@ -1,0 +1,1150 @@
+[student@workstation ~]$ lab troubleshoot-container start
+
+Setting up workstation for the Guided Excercise: Configuring Apache Container Logs for Debugging
+
+ · Checking podman configuration...............................  SUCCESS
+ · Downloading starter project.................................  SUCCESS
+ · Downloading solution project................................  SUCCESS
+
+Setup successful. Please proceed with the exercise.
+
+[student@workstation ~]$ cd DO180/labs/troubleshoot-container/conf/
+[student@workstation conf]$ less httpd.conf 
+[student@workstation conf]$ ll
+total 92
+drwxrwxr-x. 2 student student  4096 Mar 22 09:13 extra
+-rw-rw-r--. 1 student student 11875 Mar 22 09:13 httpd.conf
+-rw-rw-r--. 1 student student 13077 Mar 22 09:13 magic
+-rw-rw-r--. 1 student student 60855 Mar 22 09:13 mime.types
+drwxrwxr-x. 3 student student    37 Mar 22 09:13 original
+[student@workstation conf]$ cd ..
+[student@workstation troubleshoot-container]$ ll
+total 8
+-rwxrwxr-x. 1 student student  47 Mar 22 09:13 build.sh
+drwxrwxr-x. 4 student student  84 Mar 22 09:13 conf
+-rw-rw-r--. 1 student student 136 Mar 22 09:13 Dockerfile
+drwxrwxr-x. 2 student student  22 Mar 22 09:13 src
+[student@workstation troubleshoot-container]$ ll src
+total 0
+[student@workstation troubleshoot-container]$ cat Dockerfile 
+FROM quay.io/redhattraining/httpd-parent
+
+MAINTAINER username <username@example.com>
+
+COPY ./conf/httpd.conf /etc/httpd/conf/httpd.conf
+[student@workstation troubleshoot-container]$ cat ~/oclogin 
+RHT_OCP4_DEV_PASSWORD=32741f016def488f82d6
+RHT_OCP4_DEV_USER=lqtpou
+RHT_OCP4_GITHUB_USER=avoker
+RHT_OCP4_MASTER_API=https://api.ap410.prod.nextcle.com:6443
+RHT_OCP4_NEXUS_SERVER=nexus-common.apps.ap410.prod.nextcle.com
+RHT_OCP4_QUAY_USER=alan_lu
+RHT_OCP4_WILDCARD_DOMAIN=apps.ap410.prod.nextcle.com
+
+echo ${RHT_OCP4_DEV_USER} : ${RHT_OCP4_DEV_PASSWORD} : ${RHT_OCP4_MASTER_API}
+oc login -u ${RHT_OCP4_DEV_USER} -p ${RHT_OCP4_DEV_PASSWORD} ${RHT_OCP4_MASTER_API}
+[student@workstation troubleshoot-container]$ grep Custom conf/httpd.conf 
+    # a CustomLog directive (see below).
+    CustomLog "/dev/stdout" common
+    # CustomLog "/dev/stdout" combined
+# Customizable error responses come in three flavors:
+[student@workstation troubleshoot-container]$ ll
+total 8
+-rwxrwxr-x. 1 student student  47 Mar 22 09:13 build.sh
+drwxrwxr-x. 4 student student  84 Mar 22 09:13 conf
+-rw-rw-r--. 1 student student 136 Mar 22 09:13 Dockerfile
+drwxrwxr-x. 2 student student  22 Mar 22 09:13 src
+[student@workstation troubleshoot-container]$ cat build.sh 
+#!/bin/bash
+sudo podman build -t debug-httpd .
+[student@workstation troubleshoot-container]$ podman build -t troubleshoot-container .
+STEP 1/3: FROM quay.io/redhattraining/httpd-parent
+Trying to pull quay.io/redhattraining/httpd-parent:latest...
+Getting image source signatures
+Copying blob a3ed95caeb02 done  
+Copying blob a3ed95caeb02 done  
+Copying blob a3ed95caeb02 done  
+Copying blob 08b8c9fdec44 done  
+Copying blob 6a5240d60dc4 done  
+Copying blob 787f47dbeaac done  
+Copying blob a3ed95caeb02 skipped: already exists  
+Copying blob a3ed95caeb02 skipped: already exists  
+Copying blob a3ed95caeb02 skipped: already exists  
+Copying blob 408208567b9a done  
+Writing manifest to image destination
+Storing signatures
+STEP 2/4: COPY src/ ${DOCROOT}/
+--> f5211fcca93
+STEP 3/4: MAINTAINER username <username@example.com>
+--> 465e477967a
+STEP 4/4: COPY ./conf/httpd.conf /etc/httpd/conf/httpd.conf
+COMMIT troubleshoot-container
+--> b5d77da72f8
+Successfully tagged localhost/troubleshoot-container:latest
+b5d77da72f88ac913e43e7acb24adbd6d697749ae5e09131ed8e9c2ba24f5592
+[student@workstation troubleshoot-container]$ podman run --name troubleshoot-container -d -p 10080:80 troubleshoot-container
+11deffb4577acbd779f8d95d001983040f4011d40689b2a96ac72a386935d572
+[student@workstation troubleshoot-container]$ podman ps
+CONTAINER ID  IMAGE                                    COMMAND               CREATED        STATUS            PORTS                  NAMES
+11deffb4577a  localhost/troubleshoot-container:latest  /bin/sh -c /usr/s...  9 seconds ago  Up 9 seconds ago  0.0.0.0:10080->80/tcp  troubleshoot-container
+[student@workstation troubleshoot-container]$ curl http://localhost:10080
+Hello from the httpd-parent container!
+[student@workstation troubleshoot-container]$ podman logs
+Error: specify at least one container name or ID to log
+[student@workstation troubleshoot-container]$ podman logs -l
+[Sat Aug 13 04:55:44.638024 2022] [suexec:notice] [pid 1:tid 139924813986048] AH01232: suEXEC mechanism enabled (wrapper: /usr/sbin/suexec)
+AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 10.0.2.100. Set the 'ServerName' directive globally to suppress this message
+[Sat Aug 13 04:55:44.638343 2022] [http2:debug] [pid 1:tid 139924813986048] mod_http2.c(112): AH03089: initializing post config dry run
+AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 10.0.2.100. Set the 'ServerName' directive globally to suppress this message
+[Sat Aug 13 04:55:44.648617 2022] [slotmem_shm:debug] [pid 1:tid 139924813986048] mod_slotmem_shm.c(497): AH02301: attach looking for /run/httpd/slotmem-shm-mod_heartmonitor_0.shm
+[Sat Aug 13 04:55:44.648632 2022] [lbmethod_heartbeat:notice] [pid 1:tid 139924813986048] AH02282: No slotmem from mod_heartmonitor
+[Sat Aug 13 04:55:44.653440 2022] [http2:info] [pid 1:tid 139924813986048] AH03090: mod_http2 (v1.11.3-git, feats=CHPRIO+SHA256+INVHD+DWINS, nghttp2 1.33.0), initializing...
+[Sat Aug 13 04:55:44.653479 2022] [http2:warn] [pid 1:tid 139924813986048] AH02951: mod_ssl does not seem to be enabled
+[Sat Aug 13 04:55:44.653535 2022] [proxy_http2:info] [pid 1:tid 139924813986048] AH03349: mod_proxy_http2 (v1.11.3-git, nghttp2 1.33.0), initializing...
+[Sat Aug 13 04:55:44.653553 2022] [proxy_hcheck:debug] [pid 1:tid 139924813986048] mod_proxy_hcheck.c(1050): AH03265: watchdog callback registered (_proxy_hcheck_ for 10.0.2.100)
+[Sat Aug 13 04:55:44.653574 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(454): AH010033: Watchdog: Running with WatchdogInterval 1000ms
+[Sat Aug 13 04:55:44.653578 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(462): AH02974: Watchdog: found parent providers.
+[Sat Aug 13 04:55:44.653581 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(508): AH02977: Watchdog: found child providers.
+[Sat Aug 13 04:55:44.653582 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(516): AH02978: Watchdog: Looking for child (_singleton_).
+[Sat Aug 13 04:55:44.653584 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(516): AH02978: Watchdog: Looking for child (_default_).
+[Sat Aug 13 04:55:44.653585 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(516): AH02978: Watchdog: Looking for child (_proxy_hcheck_).
+[Sat Aug 13 04:55:44.653592 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(542): AH02979: Watchdog: Created singleton mutex (_proxy_hcheck_).
+[Sat Aug 13 04:55:44.656025 2022] [mpm_event:notice] [pid 1:tid 139924813986048] AH00489: Apache/2.4.37 (Red Hat Enterprise Linux) configured -- resuming normal operations
+[Sat Aug 13 04:55:44.656033 2022] [mpm_event:info] [pid 1:tid 139924813986048] AH00490: Server built: Apr  5 2019 07:31:21
+[Sat Aug 13 04:55:44.656042 2022] [core:notice] [pid 1:tid 139924813986048] AH00094: Command line: '/usr/sbin/httpd -D FOREGROUND'
+[Sat Aug 13 04:55:44.656045 2022] [core:debug] [pid 1:tid 139924813986048] log.c(1571): AH02639: Using SO_REUSEPORT: yes (1)
+[Sat Aug 13 04:55:44.659989 2022] [watchdog:debug] [pid 7:tid 139924548298496] mod_watchdog.c(158): AH02972: Singleton Watchdog (_proxy_hcheck_) running
+[Sat Aug 13 04:55:44.660021 2022] [proxy_hcheck:debug] [pid 7:tid 139924548298496] mod_proxy_hcheck.c(893): AH03258: _proxy_hcheck_ watchdog started.
+[Sat Aug 13 04:55:44.660919 2022] [proxy_hcheck:debug] [pid 7:tid 139924548298496] mod_proxy_hcheck.c(907): AH03313: apr_thread_pool_create() with 16 threads succeeded
+[Sat Aug 13 04:55:44.660940 2022] [watchdog:debug] [pid 7:tid 139924813986048] mod_watchdog.c(590): AH02981: Watchdog: Created child worker thread (_proxy_hcheck_).
+[Sat Aug 13 04:55:44.660975 2022] [proxy:debug] [pid 7:tid 139924813986048] proxy_util.c(1923): AH00925: initializing worker proxy:reverse shared
+[Sat Aug 13 04:55:44.660986 2022] [proxy:debug] [pid 7:tid 139924813986048] proxy_util.c(1980): AH00927: initializing worker proxy:reverse local
+[Sat Aug 13 04:55:44.661000 2022] [proxy:debug] [pid 7:tid 139924813986048] proxy_util.c(2015): AH00930: initialized pool in child 7 for (*) min=0 max=61 smax=61
+[Sat Aug 13 04:55:44.662308 2022] [mpm_event:debug] [pid 7:tid 139924019652352] event.c(2313): AH02471: start_threads: Using epoll (wakeable)
+[Sat Aug 13 04:55:44.669181 2022] [watchdog:debug] [pid 9:tid 139924813986048] mod_watchdog.c(590): AH02981: Watchdog: Created child worker thread (_proxy_hcheck_).
+[Sat Aug 13 04:55:44.669214 2022] [proxy:debug] [pid 9:tid 139924813986048] proxy_util.c(1923): AH00925: initializing worker proxy:reverse shared
+[Sat Aug 13 04:55:44.669223 2022] [proxy:debug] [pid 9:tid 139924813986048] proxy_util.c(1980): AH00927: initializing worker proxy:reverse local
+[Sat Aug 13 04:55:44.669238 2022] [proxy:debug] [pid 9:tid 139924813986048] proxy_util.c(2015): AH00930: initialized pool in child 9 for (*) min=0 max=61 smax=61
+[Sat Aug 13 04:55:44.672892 2022] [watchdog:debug] [pid 8:tid 139924813986048] mod_watchdog.c(590): AH02981: Watchdog: Created child worker thread (_proxy_hcheck_).
+[Sat Aug 13 04:55:44.672929 2022] [proxy:debug] [pid 8:tid 139924813986048] proxy_util.c(1923): AH00925: initializing worker proxy:reverse shared
+[Sat Aug 13 04:55:44.672939 2022] [proxy:debug] [pid 8:tid 139924813986048] proxy_util.c(1980): AH00927: initializing worker proxy:reverse local
+[Sat Aug 13 04:55:44.672955 2022] [proxy:debug] [pid 8:tid 139924813986048] proxy_util.c(2015): AH00930: initialized pool in child 8 for (*) min=0 max=61 smax=61
+[Sat Aug 13 04:55:44.674163 2022] [mpm_event:debug] [pid 9:tid 139924229375744] event.c(2313): AH02471: start_threads: Using epoll (wakeable)
+[Sat Aug 13 04:55:44.675359 2022] [mpm_event:debug] [pid 8:tid 139924229375744] event.c(2313): AH02471: start_threads: Using epoll (wakeable)
+[Sat Aug 13 04:56:09.023553 2022] [authz_core:debug] [pid 8:tid 139924220983040] mod_authz_core.c(820): [client 10.0.2.100:59498] AH01626: authorization result of Require all granted: granted
+[Sat Aug 13 04:56:09.023611 2022] [authz_core:debug] [pid 8:tid 139924220983040] mod_authz_core.c(820): [client 10.0.2.100:59498] AH01626: authorization result of <RequireAny>: granted
+[Sat Aug 13 04:56:09.023671 2022] [authz_core:debug] [pid 8:tid 139924220983040] mod_authz_core.c(820): [client 10.0.2.100:59498] AH01626: authorization result of Require all granted: granted
+[Sat Aug 13 04:56:09.023675 2022] [authz_core:debug] [pid 8:tid 139924220983040] mod_authz_core.c(820): [client 10.0.2.100:59498] AH01626: authorization result of <RequireAny>: granted
+10.0.2.100 - - [13/Aug/2022:04:56:09 +0000] "GET / HTTP/1.1" 200 39
+[student@workstation troubleshoot-container]$ podman logs -f
+Error: specify at least one container name or ID to log
+[student@workstation troubleshoot-container]$ podman logs -f -l
+[Sat Aug 13 04:55:44.638024 2022] [suexec:notice] [pid 1:tid 139924813986048] AH01232: suEXEC mechanism enabled (wrapper: /usr/sbin/suexec)
+AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 10.0.2.100. Set the 'ServerName' directive globally to suppress this message
+[Sat Aug 13 04:55:44.638343 2022] [http2:debug] [pid 1:tid 139924813986048] mod_http2.c(112): AH03089: initializing post config dry run
+AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 10.0.2.100. Set the 'ServerName' directive globally to suppress this message
+[Sat Aug 13 04:55:44.648617 2022] [slotmem_shm:debug] [pid 1:tid 139924813986048] mod_slotmem_shm.c(497): AH02301: attach looking for /run/httpd/slotmem-shm-mod_heartmonitor_0.shm
+[Sat Aug 13 04:55:44.648632 2022] [lbmethod_heartbeat:notice] [pid 1:tid 139924813986048] AH02282: No slotmem from mod_heartmonitor
+[Sat Aug 13 04:55:44.653440 2022] [http2:info] [pid 1:tid 139924813986048] AH03090: mod_http2 (v1.11.3-git, feats=CHPRIO+SHA256+INVHD+DWINS, nghttp2 1.33.0), initializing...
+[Sat Aug 13 04:55:44.653479 2022] [http2:warn] [pid 1:tid 139924813986048] AH02951: mod_ssl does not seem to be enabled
+[Sat Aug 13 04:55:44.653535 2022] [proxy_http2:info] [pid 1:tid 139924813986048] AH03349: mod_proxy_http2 (v1.11.3-git, nghttp2 1.33.0), initializing...
+[Sat Aug 13 04:55:44.653553 2022] [proxy_hcheck:debug] [pid 1:tid 139924813986048] mod_proxy_hcheck.c(1050): AH03265: watchdog callback registered (_proxy_hcheck_ for 10.0.2.100)
+[Sat Aug 13 04:55:44.653574 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(454): AH010033: Watchdog: Running with WatchdogInterval 1000ms
+[Sat Aug 13 04:55:44.653578 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(462): AH02974: Watchdog: found parent providers.
+[Sat Aug 13 04:55:44.653581 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(508): AH02977: Watchdog: found child providers.
+[Sat Aug 13 04:55:44.653582 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(516): AH02978: Watchdog: Looking for child (_singleton_).
+[Sat Aug 13 04:55:44.653584 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(516): AH02978: Watchdog: Looking for child (_default_).
+[Sat Aug 13 04:55:44.653585 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(516): AH02978: Watchdog: Looking for child (_proxy_hcheck_).
+[Sat Aug 13 04:55:44.653592 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(542): AH02979: Watchdog: Created singleton mutex (_proxy_hcheck_).
+[Sat Aug 13 04:55:44.656025 2022] [mpm_event:notice] [pid 1:tid 139924813986048] AH00489: Apache/2.4.37 (Red Hat Enterprise Linux) configured -- resuming normal operations
+[Sat Aug 13 04:55:44.656033 2022] [mpm_event:info] [pid 1:tid 139924813986048] AH00490: Server built: Apr  5 2019 07:31:21
+[Sat Aug 13 04:55:44.656042 2022] [core:notice] [pid 1:tid 139924813986048] AH00094: Command line: '/usr/sbin/httpd -D FOREGROUND'
+[Sat Aug 13 04:55:44.656045 2022] [core:debug] [pid 1:tid 139924813986048] log.c(1571): AH02639: Using SO_REUSEPORT: yes (1)
+[Sat Aug 13 04:55:44.659989 2022] [watchdog:debug] [pid 7:tid 139924548298496] mod_watchdog.c(158): AH02972: Singleton Watchdog (_proxy_hcheck_) running
+[Sat Aug 13 04:55:44.660021 2022] [proxy_hcheck:debug] [pid 7:tid 139924548298496] mod_proxy_hcheck.c(893): AH03258: _proxy_hcheck_ watchdog started.
+[Sat Aug 13 04:55:44.660919 2022] [proxy_hcheck:debug] [pid 7:tid 139924548298496] mod_proxy_hcheck.c(907): AH03313: apr_thread_pool_create() with 16 threads succeeded
+[Sat Aug 13 04:55:44.660940 2022] [watchdog:debug] [pid 7:tid 139924813986048] mod_watchdog.c(590): AH02981: Watchdog: Created child worker thread (_proxy_hcheck_).
+[Sat Aug 13 04:55:44.660975 2022] [proxy:debug] [pid 7:tid 139924813986048] proxy_util.c(1923): AH00925: initializing worker proxy:reverse shared
+[Sat Aug 13 04:55:44.660986 2022] [proxy:debug] [pid 7:tid 139924813986048] proxy_util.c(1980): AH00927: initializing worker proxy:reverse local
+[Sat Aug 13 04:55:44.661000 2022] [proxy:debug] [pid 7:tid 139924813986048] proxy_util.c(2015): AH00930: initialized pool in child 7 for (*) min=0 max=61 smax=61
+[Sat Aug 13 04:55:44.662308 2022] [mpm_event:debug] [pid 7:tid 139924019652352] event.c(2313): AH02471: start_threads: Using epoll (wakeable)
+[Sat Aug 13 04:55:44.669181 2022] [watchdog:debug] [pid 9:tid 139924813986048] mod_watchdog.c(590): AH02981: Watchdog: Created child worker thread (_proxy_hcheck_).
+[Sat Aug 13 04:55:44.669214 2022] [proxy:debug] [pid 9:tid 139924813986048] proxy_util.c(1923): AH00925: initializing worker proxy:reverse shared
+[Sat Aug 13 04:55:44.669223 2022] [proxy:debug] [pid 9:tid 139924813986048] proxy_util.c(1980): AH00927: initializing worker proxy:reverse local
+[Sat Aug 13 04:55:44.669238 2022] [proxy:debug] [pid 9:tid 139924813986048] proxy_util.c(2015): AH00930: initialized pool in child 9 for (*) min=0 max=61 smax=61
+[Sat Aug 13 04:55:44.672892 2022] [watchdog:debug] [pid 8:tid 139924813986048] mod_watchdog.c(590): AH02981: Watchdog: Created child worker thread (_proxy_hcheck_).
+[Sat Aug 13 04:55:44.672929 2022] [proxy:debug] [pid 8:tid 139924813986048] proxy_util.c(1923): AH00925: initializing worker proxy:reverse shared
+[Sat Aug 13 04:55:44.672939 2022] [proxy:debug] [pid 8:tid 139924813986048] proxy_util.c(1980): AH00927: initializing worker proxy:reverse local
+[Sat Aug 13 04:55:44.672955 2022] [proxy:debug] [pid 8:tid 139924813986048] proxy_util.c(2015): AH00930: initialized pool in child 8 for (*) min=0 max=61 smax=61
+[Sat Aug 13 04:55:44.674163 2022] [mpm_event:debug] [pid 9:tid 139924229375744] event.c(2313): AH02471: start_threads: Using epoll (wakeable)
+[Sat Aug 13 04:55:44.675359 2022] [mpm_event:debug] [pid 8:tid 139924229375744] event.c(2313): AH02471: start_threads: Using epoll (wakeable)
+[Sat Aug 13 04:56:09.023553 2022] [authz_core:debug] [pid 8:tid 139924220983040] mod_authz_core.c(820): [client 10.0.2.100:59498] AH01626: authorization result of Require all granted: granted
+[Sat Aug 13 04:56:09.023611 2022] [authz_core:debug] [pid 8:tid 139924220983040] mod_authz_core.c(820): [client 10.0.2.100:59498] AH01626: authorization result of <RequireAny>: granted
+[Sat Aug 13 04:56:09.023671 2022] [authz_core:debug] [pid 8:tid 139924220983040] mod_authz_core.c(820): [client 10.0.2.100:59498] AH01626: authorization result of Require all granted: granted
+[Sat Aug 13 04:56:09.023675 2022] [authz_core:debug] [pid 8:tid 139924220983040] mod_authz_core.c(820): [client 10.0.2.100:59498] AH01626: authorization result of <RequireAny>: granted
+10.0.2.100 - - [13/Aug/2022:04:56:09 +0000] "GET / HTTP/1.1" 200 39
+
+
+[Sat Aug 13 04:57:02.897558 2022] [authz_core:debug] [pid 7:tid 139923776526080] mod_authz_core.c(820): [client 10.0.2.100:59502] AH01626: authorization result of Require all granted: granted
+[Sat Aug 13 04:57:02.897593 2022] [authz_core:debug] [pid 7:tid 139923776526080] mod_authz_core.c(820): [client 10.0.2.100:59502] AH01626: authorization result of <RequireAny>: granted
+[Sat Aug 13 04:57:02.897631 2022] [authz_core:debug] [pid 7:tid 139923776526080] mod_authz_core.c(820): [client 10.0.2.100:59502] AH01626: authorization result of Require all granted: granted
+[Sat Aug 13 04:57:02.897634 2022] [authz_core:debug] [pid 7:tid 139923776526080] mod_authz_core.c(820): [client 10.0.2.100:59502] AH01626: authorization result of <RequireAny>: granted
+10.0.2.100 - - [13/Aug/2022:04:57:02 +0000] "GET / HTTP/1.1" 200 39
+^C[student@workstation troubleshoot-container]$ podman logs -f -l |egrep "debug"
+AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 10.0.2.100. Set the 'ServerName' directive globally to suppress this message
+[Sat Aug 13 04:55:44.638343 2022] [http2:debug] [pid 1:tid 139924813986048] mod_http2.c(112): AH03089: initializing post config dry run
+[Sat Aug 13 04:55:44.648617 2022] [slotmem_shm:debug] [pid 1:tid 139924813986048] mod_slotmem_shm.c(497): AH02301: attach looking for /run/httpd/slotmem-shm-mod_heartmonitor_0.shm
+[Sat Aug 13 04:55:44.653553 2022] [proxy_hcheck:debug] [pid 1:tid 139924813986048] mod_proxy_hcheck.c(1050): AH03265: watchdog callback registered (_proxy_hcheck_ for 10.0.2.100)
+[Sat Aug 13 04:55:44.653574 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(454): AH010033: Watchdog: Running with WatchdogInterval 1000ms
+[Sat Aug 13 04:55:44.653578 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(462): AH02974: Watchdog: found parent providers.
+[Sat Aug 13 04:55:44.653581 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(508): AH02977: Watchdog: found child providers.
+[Sat Aug 13 04:55:44.653582 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(516): AH02978: Watchdog: Looking for child (_singleton_).
+[Sat Aug 13 04:55:44.653584 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(516): AH02978: Watchdog: Looking for child (_default_).
+[Sat Aug 13 04:55:44.653585 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(516): AH02978: Watchdog: Looking for child (_proxy_hcheck_).
+[Sat Aug 13 04:55:44.653592 2022] [watchdog:debug] [pid 1:tid 139924813986048] mod_watchdog.c(542): AH02979: Watchdog: Created singleton mutex (_proxy_hcheck_).
+[Sat Aug 13 04:55:44.656045 2022] [core:debug] [pid 1:tid 139924813986048] log.c(1571): AH02639: Using SO_REUSEPORT: yes (1)
+[Sat Aug 13 04:55:44.659989 2022] [watchdog:debug] [pid 7:tid 139924548298496] mod_watchdog.c(158): AH02972: Singleton Watchdog (_proxy_hcheck_) running
+[Sat Aug 13 04:55:44.660021 2022] [proxy_hcheck:debug] [pid 7:tid 139924548298496] mod_proxy_hcheck.c(893): AH03258: _proxy_hcheck_ watchdog started.
+[Sat Aug 13 04:55:44.660919 2022] [proxy_hcheck:debug] [pid 7:tid 139924548298496] mod_proxy_hcheck.c(907): AH03313: apr_thread_pool_create() with 16 threads succeeded
+[Sat Aug 13 04:55:44.660940 2022] [watchdog:debug] [pid 7:tid 139924813986048] mod_watchdog.c(590): AH02981: Watchdog: Created child worker thread (_proxy_hcheck_).
+[Sat Aug 13 04:55:44.660975 2022] [proxy:debug] [pid 7:tid 139924813986048] proxy_util.c(1923): AH00925: initializing worker proxy:reverse shared
+[Sat Aug 13 04:55:44.660986 2022] [proxy:debug] [pid 7:tid 139924813986048] proxy_util.c(1980): AH00927: initializing worker proxy:reverse local
+[Sat Aug 13 04:55:44.661000 2022] [proxy:debug] [pid 7:tid 139924813986048] proxy_util.c(2015): AH00930: initialized pool in child 7 for (*) min=0 max=61 smax=61
+[Sat Aug 13 04:55:44.662308 2022] [mpm_event:debug] [pid 7:tid 139924019652352] event.c(2313): AH02471: start_threads: Using epoll (wakeable)
+[Sat Aug 13 04:55:44.669181 2022] [watchdog:debug] [pid 9:tid 139924813986048] mod_watchdog.c(590): AH02981: Watchdog: Created child worker thread (_proxy_hcheck_).
+[Sat Aug 13 04:55:44.669214 2022] [proxy:debug] [pid 9:tid 139924813986048] proxy_util.c(1923): AH00925: initializing worker proxy:reverse shared
+[Sat Aug 13 04:55:44.669223 2022] [proxy:debug] [pid 9:tid 139924813986048] proxy_util.c(1980): AH00927: initializing worker proxy:reverse local
+[Sat Aug 13 04:55:44.669238 2022] [proxy:debug] [pid 9:tid 139924813986048] proxy_util.c(2015): AH00930: initialized pool in child 9 for (*) min=0 max=61 smax=61
+[Sat Aug 13 04:55:44.672892 2022] [watchdog:debug] [pid 8:tid 139924813986048] mod_watchdog.c(590): AH02981: Watchdog: Created child worker thread (_proxy_hcheck_).
+[Sat Aug 13 04:55:44.672929 2022] [proxy:debug] [pid 8:tid 139924813986048] proxy_util.c(1923): AH00925: initializing worker proxy:reverse shared
+[Sat Aug 13 04:55:44.672939 2022] [proxy:debug] [pid 8:tid 139924813986048] proxy_util.c(1980): AH00927: initializing worker proxy:reverse local
+[Sat Aug 13 04:55:44.672955 2022] [proxy:debug] [pid 8:tid 139924813986048] proxy_util.c(2015): AH00930: initialized pool in child 8 for (*) min=0 max=61 smax=61
+[Sat Aug 13 04:55:44.674163 2022] [mpm_event:debug] [pid 9:tid 139924229375744] event.c(2313): AH02471: start_threads: Using epoll (wakeable)
+[Sat Aug 13 04:55:44.675359 2022] [mpm_event:debug] [pid 8:tid 139924229375744] event.c(2313): AH02471: start_threads: Using epoll (wakeable)
+[Sat Aug 13 04:56:09.023553 2022] [authz_core:debug] [pid 8:tid 139924220983040] mod_authz_core.c(820): [client 10.0.2.100:59498] AH01626: authorization result of Require all granted: granted
+[Sat Aug 13 04:56:09.023611 2022] [authz_core:debug] [pid 8:tid 139924220983040] mod_authz_core.c(820): [client 10.0.2.100:59498] AH01626: authorization result of <RequireAny>: granted
+[Sat Aug 13 04:56:09.023671 2022] [authz_core:debug] [pid 8:tid 139924220983040] mod_authz_core.c(820): [client 10.0.2.100:59498] AH01626: authorization result of Require all granted: granted
+[Sat Aug 13 04:56:09.023675 2022] [authz_core:debug] [pid 8:tid 139924220983040] mod_authz_core.c(820): [client 10.0.2.100:59498] AH01626: authorization result of <RequireAny>: granted
+[Sat Aug 13 04:57:02.897558 2022] [authz_core:debug] [pid 7:tid 139923776526080] mod_authz_core.c(820): [client 10.0.2.100:59502] AH01626: authorization result of Require all granted: granted
+[Sat Aug 13 04:57:02.897593 2022] [authz_core:debug] [pid 7:tid 139923776526080] mod_authz_core.c(820): [client 10.0.2.100:59502] AH01626: authorization result of <RequireAny>: granted
+[Sat Aug 13 04:57:02.897631 2022] [authz_core:debug] [pid 7:tid 139923776526080] mod_authz_core.c(820): [client 10.0.2.100:59502] AH01626: authorization result of Require all granted: granted
+[Sat Aug 13 04:57:02.897634 2022] [authz_core:debug] [pid 7:tid 139923776526080] mod_authz_core.c(820): [client 10.0.2.100:59502] AH01626: authorization result of <RequireAny>: granted
+^C
+[student@workstation troubleshoot-container]$ podman logs -f -l |egrep "GET"
+AH00558: httpd: Could not reliably determine the server's fully qualified domain name, using 10.0.2.100. Set the 'ServerName' directive globally to suppress this message
+10.0.2.100 - - [13/Aug/2022:04:56:09 +0000] "GET / HTTP/1.1" 200 39
+10.0.2.100 - - [13/Aug/2022:04:57:02 +0000] "GET / HTTP/1.1" 200 39
+10.0.2.100 - - [13/Aug/2022:04:59:07 +0000] "GET / HTTP/1.1" 200 39
+[student@workstation troubleshoot-container]$ podman ps
+CONTAINER ID  IMAGE       COMMAND     CREATED     STATUS      PORTS       NAMES
+[student@workstation troubleshoot-container]$ podman ps -a
+CONTAINER ID  IMAGE                              COMMAND     CREATED      STATUS      PORTS                     NAMES
+de38dcecfe9f  localhost/do180/todonodejs:latest  ./run.sh    3 weeks ago  Created     0.0.0.0:30080->30080/tcp  todoapi
+[student@workstation troubleshoot-container]$ cd
+[student@workstation ~]$ oc new-project ^C
+[student@workstation ~]$ set|OCP
+bash: OCP: command not found...
+[student@workstation ~]$ set|grep OCP
+[student@workstation ~]$ . oc
+oclogin      ocp4.config  
+[student@workstation ~]$ . oc
+oclogin      ocp4.config  
+[student@workstation ~]$ . ocp4.config 
+[student@workstation ~]$ set|grep OCP
+RHT_OCP4_DEV_PASSWORD=32741f016def488f82d6
+RHT_OCP4_DEV_USER=lqtpou
+RHT_OCP4_GITHUB_USER=avoker
+RHT_OCP4_MASTER_API=https://api.ap410.prod.nextcle.com:6443
+RHT_OCP4_NEXUS_SERVER=nexus-common.apps.ap410.prod.nextcle.com
+RHT_OCP4_QUAY_USER=alan_lu
+RHT_OCP4_WILDCARD_DOMAIN=apps.ap410.prod.nextcle.com
+[student@workstation ~]$ oc new-project lqtpou-nodjs-app
+Now using project "lqtpou-nodjs-app" on server "https://api.ap410.prod.nextcle.com:6443".
+
+You can add applications to this project with the 'new-app' command. For example, try:
+
+    oc new-app rails-postgresql-example
+
+to build a new example application in Ruby. Or use kubectl to deploy a simple Kubernetes application:
+
+    kubectl create deployment hello-node --image=k8s.gcr.io/e2e-test-images/agnhost:2.33 -- /agnhost serve-hostname
+
+[student@workstation ~]$ cd DO180-apps/
+[student@workstation DO180-apps]$ ll
+total 40
+drwxrwxr-x. 2 student student    23 Jul  4 10:22 example
+-rw-rw-r--. 1 student student  4934 Jul 24 10:46 mysql.template.para
+drwxrwxr-x. 2 student student    43 Jul  4 10:22 nodejs-app
+drwxrwxr-x. 2 student student    40 Aug 12 09:42 nodejs-helloworld
+-rw-rw-r--. 1 student student 18047 Aug 12 09:46 notes
+-rw-rw-r--. 1 student student  6860 Jul 24 09:30 openshift.mysql-persistent.template
+drwxrwxr-x. 2 student student    23 Aug 12 09:46 php-helloworld
+-rw-rw-r--. 1 student student    54 Jul  4 10:22 README.md
+drwxrwxr-x. 2 student student    23 Jul  4 10:22 temps
+drwxrwxr-x. 5 student student    51 Jul  4 10:22 todoapp
+[student@workstation DO180-apps]$ git br
+  console
+  master
+  s2i
+  testbranch
+* troubleshoot-review
+  troubleshoot-s2i
+[student@workstation DO180-apps]$ cd ..
+[student@workstation ~]$ git br
+fatal: not a git repository (or any of the parent directories): .git
+[student@workstation ~]$ cd -
+/home/student/DO180-apps
+[student@workstation DO180-apps]$ oc new-app --name nodjs-dev http://github.com/avoker/DO180-apps#troubleshoot-review --context-dir=nodejs-app --image nodejs:16-ubi8 --build-env npm_config_registry=http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs
+W0813 01:33:07.571015    5392 dockerimagelookup.go:300] container image remote registry lookup failed: you may not have access to the container image "docker.io/library/nodejs:16-ubi8"
+error: unable to locate any local docker images with name "nodejs:16-ubi8"
+
+The 'oc new-app' command will match arguments to the following types:
+
+  1. Images tagged into image streams in the current project or the 'openshift' project
+     - if you don't specify a tag, we'll add ':latest'
+  2. Images in the container storage, on remote registries, or on the local container engine
+  3. Templates in the current project or the 'openshift' project
+  4. Git repository URLs or local paths that point to Git repositories
+
+--allow-missing-images can be used to point to an image that does not exist yet.
+
+See 'oc new-app -h' for examples.
+[student@workstation DO180-apps]$ ~/oclogin
+lqtpou : 32741f016def488f82d6 : https://api.ap410.prod.nextcle.com:6443
+Login successful.
+
+You have access to the following projects and can switch between them with 'oc project <projectname>':
+
+    lqtpou-console
+  * lqtpou-nodjs-app
+
+Using project "lqtpou-nodjs-app".
+[student@workstation DO180-apps]$ ~/oclogin
+lqtpou : 32741f016def488f82d6 : https://api.ap410.prod.nextcle.com:6443
+Login successful.
+
+You have access to the following projects and can switch between them with 'oc project <projectname>':
+
+    lqtpou-console
+  * lqtpou-nodjs-app
+
+Using project "lqtpou-nodjs-app".
+[student@workstation DO180-apps]$ oc new-app --name nodjs-dev http://github.com/avoker/DO180-apps#troubleshoot-review --context-dir=nodejs-app --image nodejs:16-ubi8 --build-env npm_config_registry=http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs
+W0813 01:34:16.464140    5520 dockerimagelookup.go:300] container image remote registry lookup failed: you may not have access to the container image "docker.io/library/nodejs:16-ubi8"
+error: unable to locate any local docker images with name "nodejs:16-ubi8"
+
+The 'oc new-app' command will match arguments to the following types:
+
+  1. Images tagged into image streams in the current project or the 'openshift' project
+     - if you don't specify a tag, we'll add ':latest'
+  2. Images in the container storage, on remote registries, or on the local container engine
+  3. Templates in the current project or the 'openshift' project
+  4. Git repository URLs or local paths that point to Git repositories
+
+--allow-missing-images can be used to point to an image that does not exist yet.
+
+See 'oc new-app -h' for examples.
+[student@workstation DO180-apps]$ oc new-app --name nodjs-dev http://github.com/avoker/DO180-apps#troubleshoot-review --context-dir=nodejs-app -i nodejs:16-ubi8 --build-env npm_config_registry=http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs
+--> Found image dfd08e2 (5 months old) in image stream "openshift/nodejs" under tag "16-ubi8" for "nodejs:16-ubi8"
+
+    Node.js 16 
+    ---------- 
+    Node.js 16 available as container is a base platform for building and running various Node.js 16 applications and frameworks. Node.js is a platform built on Chrome's JavaScript runtime for easily building fast, scalable network applications. Node.js uses an event-driven, non-blocking I/O model that makes it lightweight and efficient, perfect for data-intensive real-time applications that run across distributed devices.
+
+    Tags: builder, nodejs, nodejs16
+
+    * The source repository appears to match: nodejs
+    * A source build using source code from http://github.com/avoker/DO180-apps#troubleshoot-review will be created
+      * The resulting image will be pushed to image stream tag "nodjs-dev:latest"
+      * Use 'oc start-build' to trigger a new build
+
+--> Creating resources ...
+    imagestream.image.openshift.io "nodjs-dev" created
+    buildconfig.build.openshift.io "nodjs-dev" created
+    deployment.apps "nodjs-dev" created
+    service "nodjs-dev" created
+--> Success
+    Build scheduled, use 'oc logs -f buildconfig/nodjs-dev' to track its progress.
+    Application is not exposed. You can expose services to the outside world by executing one or more of the commands below:
+     'oc expose service/nodjs-dev' 
+    Run 'oc status' to view your app.
+[student@workstation DO180-apps]$ oc logs -f bc/nodjs-dev
+Cloning "http://github.com/avoker/DO180-apps" ...
+	Commit:	d9f8fe2316b2c132ff3b7d15bbda282d13e15e17 (.)
+	Author:	Student User <student@workstation.lab.example.com>
+	Date:	Tue Aug 9 09:38:14 2022 -0400
+time="2022-08-13T05:35:14Z" level=info msg="Not using native diff for overlay, this may cause degraded performance for building images: kernel has CONFIG_OVERLAY_FS_REDIRECT_DIR enabled"
+I0813 05:35:14.111669       1 defaults.go:102] Defaulting to storage driver "overlay" with options [mountopt=metacopy=on].
+Caching blobs under "/var/cache/blobs".
+Trying to pull image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb...
+Getting image source signatures
+Copying blob sha256:db75fb66b7757bf7e48909dc7904b4956ab642d5f1d47ddf008855a2f0d7e574
+Copying blob sha256:0d875a68bf996a2e45cd381e8eb3c8b1efa6191d8e3f6ec98be685c7e9823815
+Copying blob sha256:8dfe9326f733b815c486432e93e0a97f03e90e7cc35def9511cd1efa7f917f56
+Copying blob sha256:950c796b5dbc22ecb4f4bd661013c9286715d238a0dbdd9b7ed1406c395086a1
+Copying config sha256:dfd08e2f2735ebcde1863a8446490a6460995b8843cb9cf2c1f2f55a510551eb
+Writing manifest to image destination
+Storing signatures
+Generating dockerfile with builder image image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+Adding transient rw bind mount for /run/secrets/rhsm
+STEP 1/9: FROM image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+STEP 2/9: LABEL "io.openshift.build.commit.ref"="troubleshoot-review"       "io.openshift.build.commit.message"="."       "io.openshift.build.source-location"="http://github.com/avoker/DO180-apps"       "io.openshift.build.source-context-dir"="nodejs-app"       "io.openshift.build.image"="image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb"       "io.openshift.build.commit.author"="Student User <student@workstation.lab.example.com>"       "io.openshift.build.commit.date"="Tue Aug 9 09:38:14 2022 -0400"       "io.openshift.build.commit.id"="d9f8fe2316b2c132ff3b7d15bbda282d13e15e17"
+STEP 3/9: ENV OPENSHIFT_BUILD_NAME="nodjs-dev-1"     OPENSHIFT_BUILD_NAMESPACE="lqtpou-nodjs-app"     OPENSHIFT_BUILD_SOURCE="http://github.com/avoker/DO180-apps"     OPENSHIFT_BUILD_REFERENCE="troubleshoot-review"     OPENSHIFT_BUILD_COMMIT="d9f8fe2316b2c132ff3b7d15bbda282d13e15e17"     npm_config_registry="http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs"
+STEP 4/9: USER root
+STEP 5/9: COPY upload/src /tmp/src
+STEP 6/9: RUN chown -R 1001:0 /tmp/src
+STEP 7/9: USER 1001
+STEP 8/9: RUN /usr/libexec/s2i/assemble
+---> Installing application source ...
+---> Installing all dependencies
+npm notice 
+npm notice New minor version of npm available! 8.1.2 -> 8.17.0
+npm notice Changelog: <https://github.com/npm/cli/releases/tag/v8.17.0>
+npm notice Run `npm install -g npm@8.17.0` to update!
+npm notice 
+npm ERR! code ETARGET
+npm ERR! notarget No matching version found for express@4.20.
+npm ERR! notarget In most cases you or one of your dependencies are requesting
+npm ERR! notarget a package version that doesn't exist.
+
+npm ERR! A complete log of this run can be found in:
+npm ERR!     /opt/app-root/src/.npm/_logs/2022-08-13T05_35_37_546Z-debug.log
+error: build error: error building at STEP "RUN /usr/libexec/s2i/assemble": error while running runtime: exit status 1
+[student@workstation DO180-apps]$ oc get pods
+NAME                READY   STATUS   RESTARTS   AGE
+nodjs-dev-1-build   0/1     Error    0          32m
+[student@workstation DO180-apps]$ cd nodejs-app/
+[student@workstation nodejs-app]$ grep express package.json 
+    "express": "4.20",
+[student@workstation nodejs-app]$ sed -i 's/4.20/4.x/' package.json 
+[student@workstation nodejs-app]$ git cam "fix express version"
+[troubleshoot-review 9935950] fix express version
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+[student@workstation nodejs-app]$ git br
+  console
+  master
+  s2i
+  testbranch
+* troubleshoot-review
+  troubleshoot-s2i
+[student@workstation nodejs-app]$ git push
+Gtk-Message: 02:10:38.383: Failed to load module "canberra-gtk-module"
+Gtk-Message: 02:10:47.260: Failed to load module "canberra-gtk-module"
+Enumerating objects: 7, done.
+Counting objects: 100% (7/7), done.
+Delta compression using up to 2 threads
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (4/4), 391 bytes | 391.00 KiB/s, done.
+Total 4 (delta 2), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (2/2), completed with 2 local objects.
+To https://github.com/avoker/DO180-apps
+   d9f8fe2..9935950  troubleshoot-review -> troubleshoot-review
+[student@workstation nodejs-app]$ oc start-build bc/nodejs-dev
+Error from server (Forbidden): buildconfigs.build.openshift.io "nodejs-dev" is forbidden: buildconfigs.build.openshift.io "nodejs-dev" not found
+[student@workstation nodejs-app]$ oc logs -f bc/nodjs-dev
+Cloning "http://github.com/avoker/DO180-apps" ...
+	Commit:	d9f8fe2316b2c132ff3b7d15bbda282d13e15e17 (.)
+	Author:	Student User <student@workstation.lab.example.com>
+	Date:	Tue Aug 9 09:38:14 2022 -0400
+time="2022-08-13T05:35:14Z" level=info msg="Not using native diff for overlay, this may cause degraded performance for building images: kernel has CONFIG_OVERLAY_FS_REDIRECT_DIR enabled"
+I0813 05:35:14.111669       1 defaults.go:102] Defaulting to storage driver "overlay" with options [mountopt=metacopy=on].
+Caching blobs under "/var/cache/blobs".
+Trying to pull image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb...
+Getting image source signatures
+Copying blob sha256:db75fb66b7757bf7e48909dc7904b4956ab642d5f1d47ddf008855a2f0d7e574
+Copying blob sha256:0d875a68bf996a2e45cd381e8eb3c8b1efa6191d8e3f6ec98be685c7e9823815
+Copying blob sha256:8dfe9326f733b815c486432e93e0a97f03e90e7cc35def9511cd1efa7f917f56
+Copying blob sha256:950c796b5dbc22ecb4f4bd661013c9286715d238a0dbdd9b7ed1406c395086a1
+Copying config sha256:dfd08e2f2735ebcde1863a8446490a6460995b8843cb9cf2c1f2f55a510551eb
+Writing manifest to image destination
+Storing signatures
+Generating dockerfile with builder image image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+Adding transient rw bind mount for /run/secrets/rhsm
+STEP 1/9: FROM image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+STEP 2/9: LABEL "io.openshift.build.commit.ref"="troubleshoot-review"       "io.openshift.build.commit.message"="."       "io.openshift.build.source-location"="http://github.com/avoker/DO180-apps"       "io.openshift.build.source-context-dir"="nodejs-app"       "io.openshift.build.image"="image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb"       "io.openshift.build.commit.author"="Student User <student@workstation.lab.example.com>"       "io.openshift.build.commit.date"="Tue Aug 9 09:38:14 2022 -0400"       "io.openshift.build.commit.id"="d9f8fe2316b2c132ff3b7d15bbda282d13e15e17"
+STEP 3/9: ENV OPENSHIFT_BUILD_NAME="nodjs-dev-1"     OPENSHIFT_BUILD_NAMESPACE="lqtpou-nodjs-app"     OPENSHIFT_BUILD_SOURCE="http://github.com/avoker/DO180-apps"     OPENSHIFT_BUILD_REFERENCE="troubleshoot-review"     OPENSHIFT_BUILD_COMMIT="d9f8fe2316b2c132ff3b7d15bbda282d13e15e17"     npm_config_registry="http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs"
+STEP 4/9: USER root
+STEP 5/9: COPY upload/src /tmp/src
+STEP 6/9: RUN chown -R 1001:0 /tmp/src
+STEP 7/9: USER 1001
+STEP 8/9: RUN /usr/libexec/s2i/assemble
+---> Installing application source ...
+---> Installing all dependencies
+npm notice 
+npm notice New minor version of npm available! 8.1.2 -> 8.17.0
+npm notice Changelog: <https://github.com/npm/cli/releases/tag/v8.17.0>
+npm notice Run `npm install -g npm@8.17.0` to update!
+npm notice 
+npm ERR! code ETARGET
+npm ERR! notarget No matching version found for express@4.20.
+npm ERR! notarget In most cases you or one of your dependencies are requesting
+npm ERR! notarget a package version that doesn't exist.
+
+npm ERR! A complete log of this run can be found in:
+npm ERR!     /opt/app-root/src/.npm/_logs/2022-08-13T05_35_37_546Z-debug.log
+error: build error: error building at STEP "RUN /usr/libexec/s2i/assemble": error while running runtime: exit status 1
+[student@workstation nodejs-app]$ git st
+On branch troubleshoot-review
+Your branch is up to date with 'origin/troubleshoot-review'.
+
+nothing to commit, working tree clean
+[student@workstation nodejs-app]$ git push
+Everything up-to-date
+[student@workstation nodejs-app]$ oc start-build bc/nodejs-dev
+Error from server (Forbidden): buildconfigs.build.openshift.io "nodejs-dev" is forbidden: buildconfigs.build.openshift.io "nodejs-dev" not found
+[student@workstation nodejs-app]$ oc start-build bc/nodejs-dev-1
+Error from server (Forbidden): buildconfigs.build.openshift.io "nodejs-dev-1" is forbidden: buildconfigs.build.openshift.io "nodejs-dev-1" not found
+[student@workstation nodejs-app]$ oc new-app --name nodjs-dev http://github.com/avoker/DO180-apps#troubleshoot-review --context-dir=nodejs-app --image nodejs:16-ubi8 --build-env npm_config_registry=http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs
+W0813 02:16:32.396853    6295 dockerimagelookup.go:300] container image remote registry lookup failed: you may not have access to the container image "docker.io/library/nodejs:16-ubi8"
+error: unable to locate any local docker images with name "nodejs:16-ubi8"
+
+The 'oc new-app' command will match arguments to the following types:
+
+  1. Images tagged into image streams in the current project or the 'openshift' project
+     - if you don't specify a tag, we'll add ':latest'
+  2. Images in the container storage, on remote registries, or on the local container engine
+  3. Templates in the current project or the 'openshift' project
+  4. Git repository URLs or local paths that point to Git repositories
+
+--allow-missing-images can be used to point to an image that does not exist yet.
+
+See 'oc new-app -h' for examples.
+[student@workstation nodejs-app]$ oc new-app --name nodjs-dev http://github.com/avoker/DO180-apps#troubleshoot-review --context-dir=nodejs-app -i nodejs:16-ubi8 --build-env npm_config_registry=http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs
+--> Found image dfd08e2 (5 months old) in image stream "openshift/nodejs" under tag "16-ubi8" for "nodejs:16-ubi8"
+
+    Node.js 16 
+    ---------- 
+    Node.js 16 available as container is a base platform for building and running various Node.js 16 applications and frameworks. Node.js is a platform built on Chrome's JavaScript runtime for easily building fast, scalable network applications. Node.js uses an event-driven, non-blocking I/O model that makes it lightweight and efficient, perfect for data-intensive real-time applications that run across distributed devices.
+
+    Tags: builder, nodejs, nodejs16
+
+    * The source repository appears to match: nodejs
+    * A source build using source code from http://github.com/avoker/DO180-apps#troubleshoot-review will be created
+      * The resulting image will be pushed to image stream tag "nodjs-dev:latest"
+      * Use 'oc start-build' to trigger a new build
+
+--> Creating resources ...
+    imagestreamtag.image.openshift.io "nodjs-dev:latest" created
+    error: buildconfigs.build.openshift.io "nodjs-dev" already exists
+    error: deployments.apps "nodjs-dev" already exists
+    error: services "nodjs-dev" already exists
+--> Failed
+[student@workstation nodejs-app]$ oc start-build bc/nodejs-dev
+Error from server (Forbidden): buildconfigs.build.openshift.io "nodejs-dev" is forbidden: buildconfigs.build.openshift.io "nodejs-dev" not found
+[student@workstation nodejs-app]$ oc start-build bc/nodjs-dev
+build.build.openshift.io/nodjs-dev-2 started
+[student@workstation nodejs-app]$ oc logs -f bc/nodjs-dev
+Cloning "http://github.com/avoker/DO180-apps" ...
+	Commit:	9935950c4d6cb181d621ed1386054e9ca2a90481 (fix express version)
+	Author:	Student User <student@workstation.lab.example.com>
+	Date:	Sat Aug 13 02:09:51 2022 -0400
+time="2022-08-13T06:18:08Z" level=info msg="Not using native diff for overlay, this may cause degraded performance for building images: kernel has CONFIG_OVERLAY_FS_REDIRECT_DIR enabled"
+I0813 06:18:08.273681       1 defaults.go:102] Defaulting to storage driver "overlay" with options [mountopt=metacopy=on].
+Caching blobs under "/var/cache/blobs".
+Trying to pull image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb...
+Getting image source signatures
+Copying blob sha256:db75fb66b7757bf7e48909dc7904b4956ab642d5f1d47ddf008855a2f0d7e574
+Copying blob sha256:0d875a68bf996a2e45cd381e8eb3c8b1efa6191d8e3f6ec98be685c7e9823815
+Copying blob sha256:8dfe9326f733b815c486432e93e0a97f03e90e7cc35def9511cd1efa7f917f56
+Copying blob sha256:950c796b5dbc22ecb4f4bd661013c9286715d238a0dbdd9b7ed1406c395086a1
+Copying config sha256:dfd08e2f2735ebcde1863a8446490a6460995b8843cb9cf2c1f2f55a510551eb
+Writing manifest to image destination
+Storing signatures
+Generating dockerfile with builder image image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+Adding transient rw bind mount for /run/secrets/rhsm
+STEP 1/9: FROM image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+STEP 2/9: LABEL "io.openshift.build.source-location"="http://github.com/avoker/DO180-apps"       "io.openshift.build.source-context-dir"="nodejs-app"       "io.openshift.build.image"="image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb"       "io.openshift.build.commit.author"="Student User <student@workstation.lab.example.com>"       "io.openshift.build.commit.date"="Sat Aug 13 02:09:51 2022 -0400"       "io.openshift.build.commit.id"="9935950c4d6cb181d621ed1386054e9ca2a90481"       "io.openshift.build.commit.ref"="troubleshoot-review"       "io.openshift.build.commit.message"="fix express version"
+STEP 3/9: ENV OPENSHIFT_BUILD_NAME="nodjs-dev-2"     OPENSHIFT_BUILD_NAMESPACE="lqtpou-nodjs-app"     OPENSHIFT_BUILD_SOURCE="http://github.com/avoker/DO180-apps"     OPENSHIFT_BUILD_REFERENCE="troubleshoot-review"     OPENSHIFT_BUILD_COMMIT="9935950c4d6cb181d621ed1386054e9ca2a90481"     npm_config_registry="http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs"
+STEP 4/9: USER root
+STEP 5/9: COPY upload/src /tmp/src
+STEP 6/9: RUN chown -R 1001:0 /tmp/src
+STEP 7/9: USER 1001
+STEP 8/9: RUN /usr/libexec/s2i/assemble
+---> Installing application source ...
+---> Installing all dependencies
+
+added 58 packages in 4s
+
+7 packages are looking for funding
+  run `npm fund` for details
+npm notice 
+npm notice New minor version of npm available! 8.1.2 -> 8.17.0
+npm notice Changelog: <https://github.com/npm/cli/releases/tag/v8.17.0>
+npm notice Run `npm install -g npm@8.17.0` to update!
+npm notice 
+---> Building in production mode
+---> Pruning the development dependencies
+
+up to date in 379ms
+
+7 packages are looking for funding
+  run `npm fund` for details
+/opt/app-root/src/.npm is not a mountpoint
+---> Cleaning the npm cache /opt/app-root/src/.npm
+/tmp is not a mountpoint
+---> Cleaning the /tmp/npm-*
+STEP 9/9: CMD /usr/libexec/s2i/run
+COMMIT temp.builder.openshift.io/lqtpou-nodjs-app/nodjs-dev-2:c07bff0c
+time="2022-08-13T06:18:32Z" level=warning msg="Adding metacopy option, configured globally"
+Getting image source signatures
+Copying blob sha256:7699752e6ed63eef234d2736d4e37159a433e18e06cd617e254299f324f41797
+Copying blob sha256:c8013a2772b6673d9b750b6407d4ac4f525a47bb2a5b5bf09ba9bf8e10aea3fc
+Copying blob sha256:346bf184426f05ded9d667abafcba7ba46e36cb00e849117e64ec8110f058052
+Copying blob sha256:b1811b61c2b3ff3ee358d781c5443ad956861eb9cb9832dfc08ecc48d67c9a45
+Copying blob sha256:f940e1f5660513a63f879a7308d89e27f675d3875141d099a577615707a875ac
+Copying config sha256:3f4a05e7813fda501ec91753bd51216f882fd1d1f70767478a9925f835933fad
+Writing manifest to image destination
+Storing signatures
+--> 3f4a05e7813
+Successfully tagged temp.builder.openshift.io/lqtpou-nodjs-app/nodjs-dev-2:c07bff0c
+3f4a05e7813fda501ec91753bd51216f882fd1d1f70767478a9925f835933fad
+
+Pushing image image-registry.openshift-image-registry.svc:5000/lqtpou-nodjs-app/nodjs-dev:latest ...
+Getting image source signatures
+Copying blob sha256:f940e1f5660513a63f879a7308d89e27f675d3875141d099a577615707a875ac
+Copying blob sha256:950c796b5dbc22ecb4f4bd661013c9286715d238a0dbdd9b7ed1406c395086a1
+Copying blob sha256:0d875a68bf996a2e45cd381e8eb3c8b1efa6191d8e3f6ec98be685c7e9823815
+Copying blob sha256:8dfe9326f733b815c486432e93e0a97f03e90e7cc35def9511cd1efa7f917f56
+Copying blob sha256:db75fb66b7757bf7e48909dc7904b4956ab642d5f1d47ddf008855a2f0d7e574
+Copying config sha256:3f4a05e7813fda501ec91753bd51216f882fd1d1f70767478a9925f835933fad
+Writing manifest to image destination
+Storing signatures
+Successfully pushed image-registry.openshift-image-registry.svc:5000/lqtpou-nodjs-app/nodjs-dev@sha256:8a30b4feaa7376d2920d864fde88a0a2309ef6bc931ee3898c29122c2297d640
+Push successful
+[student@workstation nodejs-app]$ oc get pods
+NAME                         READY   STATUS             RESTARTS     AGE
+nodjs-dev-1-build            0/1     Error              0            43m
+nodjs-dev-2-build            0/1     Completed          0            51s
+nodjs-dev-59f544c78f-hktjd   0/1     CrashLoopBackOff   1 (6s ago)   11s
+[student@workstation nodejs-app]$ oc log
+login   logout  logs    
+[student@workstation nodejs-app]$ oc logs nodjs-dev-59f544c78f-hktjd|less
+[student@workstation nodejs-app]$ oc logs nodjs-dev-59f544c78f-hktjd|grep Error
+Error: Cannot find module 'http-error'
+[student@workstation nodejs-app]$ oc logs -f deployment/nodejs-dev|less
+[student@workstation nodejs-app]$ oc logs -f deployment/nodjs-dev|less
+[student@workstation nodejs-app]$ oc logs -f deployment/nodjs-dev|grep -A5 Error
+Error: Cannot find module 'http-error'
+Require stack:
+- /opt/app-root/src/server.js
+    at Function.Module._resolveFilename (node:internal/modules/cjs/loader:933:15)
+    at Function.Module._load (node:internal/modules/cjs/loader:778:27)
+    at Module.require (node:internal/modules/cjs/loader:1005:19)
+[student@workstation nodejs-app]$ less server.js 
+[student@workstation nodejs-app]$ ll
+total 8
+-rw-rw-r--. 1 student student 235 Aug 13 02:08 package.json
+-rw-rw-r--. 1 student student 299 Jul  4 10:22 server.js
+[student@workstation nodejs-app]$ less package.json 
+[student@workstation nodejs-app]$ pwd
+/home/student/DO180-apps/nodejs-app
+[student@workstation nodejs-app]$ ll
+total 8
+-rw-rw-r--. 1 student student 235 Aug 13 02:08 package.json
+-rw-rw-r--. 1 student student 299 Jul  4 10:22 server.js
+[student@workstation nodejs-app]$ ll ..
+total 40
+drwxrwxr-x. 2 student student    23 Jul  4 10:22 example
+-rw-rw-r--. 1 student student  4934 Jul 24 10:46 mysql.template.para
+drwxrwxr-x. 2 student student    43 Aug 13 02:08 nodejs-app
+drwxrwxr-x. 2 student student    40 Aug 12 09:42 nodejs-helloworld
+-rw-rw-r--. 1 student student 18047 Aug 12 09:46 notes
+-rw-rw-r--. 1 student student  6860 Jul 24 09:30 openshift.mysql-persistent.template
+drwxrwxr-x. 2 student student    23 Aug 12 09:46 php-helloworld
+-rw-rw-r--. 1 student student    54 Jul  4 10:22 README.md
+drwxrwxr-x. 2 student student    23 Jul  4 10:22 temps
+drwxrwxr-x. 5 student student    51 Jul  4 10:22 todoapp
+[student@workstation nodejs-app]$ oc logs -f deployment/nodjs-dev|less
+[student@workstation nodejs-app]$ sed -i s/http-error/html-errors/ server.js 
+[student@workstation nodejs-app]$ git cam 'fix module name'
+[troubleshoot-review 5dedcb3] fix module name
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+[student@workstation nodejs-app]$ git push
+Enumerating objects: 7, done.
+Counting objects: 100% (7/7), done.
+Delta compression using up to 2 threads
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (4/4), 398 bytes | 398.00 KiB/s, done.
+Total 4 (delta 2), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (2/2), completed with 2 local objects.
+To https://github.com/avoker/DO180-apps
+   9935950..5dedcb3  troubleshoot-review -> troubleshoot-review
+[student@workstation nodejs-app]$ oc start-build bc/nodejs-dev
+Error from server (Forbidden): buildconfigs.build.openshift.io "nodejs-dev" is forbidden: buildconfigs.build.openshift.io "nodejs-dev" not found
+[student@workstation nodejs-app]$ oc start-build bc/nodjs-dev
+build.build.openshift.io/nodjs-dev-3 started
+[student@workstation nodejs-app]$ oc logs -f bc/nodejs-dev
+Error from server (NotFound): buildconfigs.build.openshift.io "nodejs-dev" not found
+[student@workstation nodejs-app]$ oc logs -f bc/nodjs-dev
+Cloning "http://github.com/avoker/DO180-apps" ...
+	Commit:	5dedcb32619f967769f45adb77b34051afdf6ea1 (fix module name)
+	Author:	Student User <student@workstation.lab.example.com>
+	Date:	Sat Aug 13 02:26:16 2022 -0400
+time="2022-08-13T06:27:01Z" level=info msg="Not using native diff for overlay, this may cause degraded performance for building images: kernel has CONFIG_OVERLAY_FS_REDIRECT_DIR enabled"
+I0813 06:27:01.027665       1 defaults.go:102] Defaulting to storage driver "overlay" with options [mountopt=metacopy=on].
+Caching blobs under "/var/cache/blobs".
+Trying to pull image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb...
+Getting image source signatures
+Copying blob sha256:0d875a68bf996a2e45cd381e8eb3c8b1efa6191d8e3f6ec98be685c7e9823815
+Copying blob sha256:950c796b5dbc22ecb4f4bd661013c9286715d238a0dbdd9b7ed1406c395086a1
+Copying blob sha256:db75fb66b7757bf7e48909dc7904b4956ab642d5f1d47ddf008855a2f0d7e574
+Copying blob sha256:8dfe9326f733b815c486432e93e0a97f03e90e7cc35def9511cd1efa7f917f56
+Copying config sha256:dfd08e2f2735ebcde1863a8446490a6460995b8843cb9cf2c1f2f55a510551eb
+Writing manifest to image destination
+Storing signatures
+Generating dockerfile with builder image image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+Adding transient rw bind mount for /run/secrets/rhsm
+STEP 1/9: FROM image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+STEP 2/9: LABEL "io.openshift.build.source-context-dir"="nodejs-app"       "io.openshift.build.image"="image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb"       "io.openshift.build.commit.author"="Student User <student@workstation.lab.example.com>"       "io.openshift.build.commit.date"="Sat Aug 13 02:26:16 2022 -0400"       "io.openshift.build.commit.id"="5dedcb32619f967769f45adb77b34051afdf6ea1"       "io.openshift.build.commit.ref"="troubleshoot-review"       "io.openshift.build.commit.message"="fix module name"       "io.openshift.build.source-location"="http://github.com/avoker/DO180-apps"
+STEP 3/9: ENV OPENSHIFT_BUILD_NAME="nodjs-dev-3"     OPENSHIFT_BUILD_NAMESPACE="lqtpou-nodjs-app"     OPENSHIFT_BUILD_SOURCE="http://github.com/avoker/DO180-apps"     OPENSHIFT_BUILD_REFERENCE="troubleshoot-review"     OPENSHIFT_BUILD_COMMIT="5dedcb32619f967769f45adb77b34051afdf6ea1"     npm_config_registry="http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs"
+STEP 4/9: USER root
+STEP 5/9: COPY upload/src /tmp/src
+STEP 6/9: RUN chown -R 1001:0 /tmp/src
+STEP 7/9: USER 1001
+STEP 8/9: RUN /usr/libexec/s2i/assemble
+---> Installing application source ...
+---> Installing all dependencies
+
+added 58 packages in 3s
+
+7 packages are looking for funding
+  run `npm fund` for details
+---> Building in production mode
+---> Pruning the development dependencies
+
+up to date in 388ms
+
+7 packages are looking for funding
+  run `npm fund` for details
+/opt/app-root/src/.npm is not a mountpoint
+---> Cleaning the npm cache /opt/app-root/src/.npm
+/tmp is not a mountpoint
+---> Cleaning the /tmp/npm-*
+STEP 9/9: CMD /usr/libexec/s2i/run
+COMMIT temp.builder.openshift.io/lqtpou-nodjs-app/nodjs-dev-3:ebf98e0d
+time="2022-08-13T06:27:24Z" level=warning msg="Adding metacopy option, configured globally"
+Getting image source signatures
+Copying blob sha256:7699752e6ed63eef234d2736d4e37159a433e18e06cd617e254299f324f41797
+Copying blob sha256:c8013a2772b6673d9b750b6407d4ac4f525a47bb2a5b5bf09ba9bf8e10aea3fc
+Copying blob sha256:346bf184426f05ded9d667abafcba7ba46e36cb00e849117e64ec8110f058052
+Copying blob sha256:b1811b61c2b3ff3ee358d781c5443ad956861eb9cb9832dfc08ecc48d67c9a45
+Copying blob sha256:52efa5027fa5f249fa1c4ee55cfdfef6d48655219281b96241b5cf595bf1afa5
+Copying config sha256:923d9e4179c91633fae534e6beecf68812ef17f663e65dfd603dcd503855b336
+Writing manifest to image destination
+Storing signatures
+--> 923d9e4179c
+Successfully tagged temp.builder.openshift.io/lqtpou-nodjs-app/nodjs-dev-3:ebf98e0d
+923d9e4179c91633fae534e6beecf68812ef17f663e65dfd603dcd503855b336
+
+Pushing image image-registry.openshift-image-registry.svc:5000/lqtpou-nodjs-app/nodjs-dev:latest ...
+Getting image source signatures
+Copying blob sha256:950c796b5dbc22ecb4f4bd661013c9286715d238a0dbdd9b7ed1406c395086a1
+Copying blob sha256:8dfe9326f733b815c486432e93e0a97f03e90e7cc35def9511cd1efa7f917f56
+Copying blob sha256:0d875a68bf996a2e45cd381e8eb3c8b1efa6191d8e3f6ec98be685c7e9823815
+Copying blob sha256:52efa5027fa5f249fa1c4ee55cfdfef6d48655219281b96241b5cf595bf1afa5
+Copying blob sha256:db75fb66b7757bf7e48909dc7904b4956ab642d5f1d47ddf008855a2f0d7e574
+Copying config sha256:923d9e4179c91633fae534e6beecf68812ef17f663e65dfd603dcd503855b336
+Writing manifest to image destination
+Storing signatures
+Successfully pushed image-registry.openshift-image-registry.svc:5000/lqtpou-nodjs-app/nodjs-dev@sha256:9f9dff0013a775c8259f69199becbf14010a0685b0fec8b68202e13048d98990
+Push successful
+[student@workstation nodejs-app]$ oc get pods
+NAME                         READY   STATUS      RESTARTS   AGE
+nodjs-dev-1-build            0/1     Error       0          52m
+nodjs-dev-2-build            0/1     Completed   0          9m41s
+nodjs-dev-3-build            0/1     Completed   0          48s
+nodjs-dev-644b99b7d9-2bf96   1/1     Running     0          9s
+[student@workstation nodejs-app]$ oc get pods
+NAME                         READY   STATUS      RESTARTS   AGE
+nodjs-dev-1-build            0/1     Error       0          52m
+nodjs-dev-2-build            0/1     Completed   0          9m59s
+nodjs-dev-3-build            0/1     Completed   0          66s
+nodjs-dev-644b99b7d9-2bf96   1/1     Running     0          27s
+[student@workstation nodejs-app]$ oc get pods -w
+NAME                         READY   STATUS      RESTARTS   AGE
+nodjs-dev-1-build            0/1     Error       0          53m
+nodjs-dev-2-build            0/1     Completed   0          10m
+nodjs-dev-3-build            0/1     Completed   0          99s
+nodjs-dev-644b99b7d9-2bf96   1/1     Running     0          60s
+^C[student@workstation nodejs-app]$ oc expose svc nodjs-dev
+route.route.openshift.io/nodjs-dev exposed
+[student@workstation nodejs-app]$ oc get route
+NAME        HOST/PORT                                                PATH   SERVICES    PORT       TERMINATION   WILDCARD
+nodjs-dev   nodjs-dev-lqtpou-nodjs-app.apps.ap410.prod.nextcle.com          nodjs-dev   8080-tcp                 None
+[student@workstation nodejs-app]$ curl nodjs-dev-lqtpou-nodjs-app.apps.ap410.prod.nextcle.com
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Error</title>
+</head>
+<body>
+<pre>Internal Server Error</pre>
+</body>
+</html>
+[student@workstation nodejs-app]$ oc logs nodjs-dev
+Error from server (NotFound): pods "nodjs-dev" not found
+[student@workstation nodejs-app]$ oc logs nodjs-dev^C
+[student@workstation nodejs-app]$ oc logs nodjs-dev-644b99b7d9-2bf96
+Environment: 
+	DEV_MODE=false
+	NODE_ENV=production
+	DEBUG_PORT=5858
+Launching via npm...
+npm info using npm@8.1.2
+npm info using node@v16.13.1
+npm timing npm:load:whichnode Completed in 0ms
+npm timing config:load:defaults Completed in 1ms
+npm timing config:load:file:/usr/lib/node_modules/npm/npmrc Completed in 1ms
+npm timing config:load:builtin Completed in 2ms
+npm timing config:load:cli Completed in 2ms
+npm timing config:load:env Completed in 0ms
+npm timing config:load:project Completed in 1ms
+npm timing config:load:file:/opt/app-root/src/.npmrc Completed in 0ms
+npm timing config:load:user Completed in 0ms
+npm timing config:load:file:/opt/app-root/src/.npm-global/etc/npmrc Completed in 0ms
+npm timing config:load:global Completed in 0ms
+npm timing config:load:validate Completed in 1ms
+npm timing config:load:credentials Completed in 1ms
+npm timing config:load:setEnvs Completed in 1ms
+npm timing config:load Completed in 10ms
+npm timing npm:load:configload Completed in 10ms
+npm timing npm:load:setTitle Completed in 0ms
+npm timing npm:load:setupLog Completed in 1ms
+npm timing config:load:flatten Completed in 3ms
+npm timing npm:load:cleanupLog Completed in 2ms
+npm timing npm:load:configScope Completed in 0ms
+npm timing npm:load:projectScope Completed in 0ms
+npm timing npm:load Completed in 20ms
+
+> nodejs-app@1.0.0 start
+> node server.js
+
+Example app listening on port 8080!
+TypeError: Cannot read properties of undefined (reading 'HOSTNAME')
+    at /opt/app-root/src/server.js:7:59
+    at Layer.handle [as handle_request] (/opt/app-root/src/node_modules/express/lib/router/layer.js:95:5)
+    at next (/opt/app-root/src/node_modules/express/lib/router/route.js:144:13)
+    at Route.dispatch (/opt/app-root/src/node_modules/express/lib/router/route.js:114:3)
+    at Layer.handle [as handle_request] (/opt/app-root/src/node_modules/express/lib/router/layer.js:95:5)
+    at /opt/app-root/src/node_modules/express/lib/router/index.js:284:15
+    at Function.process_params (/opt/app-root/src/node_modules/express/lib/router/index.js:346:12)
+    at next (/opt/app-root/src/node_modules/express/lib/router/index.js:280:10)
+    at expressInit (/opt/app-root/src/node_modules/express/lib/middleware/init.js:40:5)
+    at Layer.handle [as handle_request] (/opt/app-root/src/node_modules/express/lib/router/layer.js:95:5)
+[student@workstation nodejs-app]$ less -N /opt/app-root/src/server.js
+/opt/app-root/src/server.js: No such file or directory
+[student@workstation nodejs-app]$ less -N server.js 
+[student@workstation nodejs-app]$ vi server.js 
+[student@workstation nodejs-app]$ oc logs nodjs-dev-644b99b7d9-2bf96^C
+[student@workstation nodejs-app]$ vi server.js 
+[student@workstation nodejs-app]$ sed -i s/process.environment/process.env/ server.js 
+[student@workstation nodejs-app]$ git cam "fix code about env"
+[troubleshoot-review 80c7bbd] fix code about env
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+[student@workstation nodejs-app]$ git push
+Enumerating objects: 7, done.
+Counting objects: 100% (7/7), done.
+Delta compression using up to 2 threads
+Compressing objects: 100% (4/4), done.
+Writing objects: 100% (4/4), 388 bytes | 388.00 KiB/s, done.
+Total 4 (delta 2), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (2/2), completed with 2 local objects.
+To https://github.com/avoker/DO180-apps
+   5dedcb3..80c7bbd  troubleshoot-review -> troubleshoot-review
+[student@workstation nodejs-app]$ git start-build bc/nodjs-dev
+git: 'start-build' is not a git command. See 'git --help'.
+[student@workstation nodejs-app]$ oc start-build bc/nodjs-dev
+build.build.openshift.io/nodjs-dev-4 started
+[student@workstation nodejs-app]$ oc logs -f bc/nodjs-dev
+Cloning "http://github.com/avoker/DO180-apps" ...
+	Commit:	80c7bbdc2b32a37bb85594b930b3ddd02a83cf92 (fix code about env)
+	Author:	Student User <student@workstation.lab.example.com>
+	Date:	Sat Aug 13 02:36:16 2022 -0400
+time="2022-08-13T06:37:24Z" level=info msg="Not using native diff for overlay, this may cause degraded performance for building images: kernel has CONFIG_OVERLAY_FS_REDIRECT_DIR enabled"
+I0813 06:37:24.224661       1 defaults.go:102] Defaulting to storage driver "overlay" with options [mountopt=metacopy=on].
+Caching blobs under "/var/cache/blobs".
+Trying to pull image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb...
+Getting image source signatures
+Copying blob sha256:db75fb66b7757bf7e48909dc7904b4956ab642d5f1d47ddf008855a2f0d7e574
+Copying blob sha256:0d875a68bf996a2e45cd381e8eb3c8b1efa6191d8e3f6ec98be685c7e9823815
+Copying blob sha256:950c796b5dbc22ecb4f4bd661013c9286715d238a0dbdd9b7ed1406c395086a1
+Copying blob sha256:8dfe9326f733b815c486432e93e0a97f03e90e7cc35def9511cd1efa7f917f56
+Copying config sha256:dfd08e2f2735ebcde1863a8446490a6460995b8843cb9cf2c1f2f55a510551eb
+Writing manifest to image destination
+Storing signatures
+Generating dockerfile with builder image image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+Adding transient rw bind mount for /run/secrets/rhsm
+STEP 1/9: FROM image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb
+STEP 2/9: LABEL "io.openshift.build.source-context-dir"="nodejs-app"       "io.openshift.build.image"="image-registry.openshift-image-registry.svc:5000/openshift/nodejs@sha256:2d4df5e2be090879e4947c396475c078bae495c85d02ab3d953ed8cdc806aecb"       "io.openshift.build.commit.author"="Student User <student@workstation.lab.example.com>"       "io.openshift.build.commit.date"="Sat Aug 13 02:36:16 2022 -0400"       "io.openshift.build.commit.id"="80c7bbdc2b32a37bb85594b930b3ddd02a83cf92"       "io.openshift.build.commit.ref"="troubleshoot-review"       "io.openshift.build.commit.message"="fix code about env"       "io.openshift.build.source-location"="http://github.com/avoker/DO180-apps"
+STEP 3/9: ENV OPENSHIFT_BUILD_NAME="nodjs-dev-4"     OPENSHIFT_BUILD_NAMESPACE="lqtpou-nodjs-app"     OPENSHIFT_BUILD_SOURCE="http://github.com/avoker/DO180-apps"     OPENSHIFT_BUILD_REFERENCE="troubleshoot-review"     OPENSHIFT_BUILD_COMMIT="80c7bbdc2b32a37bb85594b930b3ddd02a83cf92"     npm_config_registry="http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs"
+STEP 4/9: USER root
+STEP 5/9: COPY upload/src /tmp/src
+STEP 6/9: RUN chown -R 1001:0 /tmp/src
+STEP 7/9: USER 1001
+STEP 8/9: RUN /usr/libexec/s2i/assemble
+---> Installing application source ...
+---> Installing all dependencies
+
+added 58 packages in 3s
+
+7 packages are looking for funding
+  run `npm fund` for details
+---> Building in production mode
+---> Pruning the development dependencies
+
+up to date in 377ms
+
+7 packages are looking for funding
+  run `npm fund` for details
+/opt/app-root/src/.npm is not a mountpoint
+---> Cleaning the npm cache /opt/app-root/src/.npm
+/tmp is not a mountpoint
+---> Cleaning the /tmp/npm-*
+STEP 9/9: CMD /usr/libexec/s2i/run
+COMMIT temp.builder.openshift.io/lqtpou-nodjs-app/nodjs-dev-4:b1cd252a
+time="2022-08-13T06:37:47Z" level=warning msg="Adding metacopy option, configured globally"
+Getting image source signatures
+Copying blob sha256:7699752e6ed63eef234d2736d4e37159a433e18e06cd617e254299f324f41797
+Copying blob sha256:c8013a2772b6673d9b750b6407d4ac4f525a47bb2a5b5bf09ba9bf8e10aea3fc
+Copying blob sha256:346bf184426f05ded9d667abafcba7ba46e36cb00e849117e64ec8110f058052
+Copying blob sha256:b1811b61c2b3ff3ee358d781c5443ad956861eb9cb9832dfc08ecc48d67c9a45
+Copying blob sha256:37aff6685b0edd740a00bf0aeea3bdbd93dbc416c36a83ca1e8135a1e3816319
+Copying config sha256:482fcaa80ec40e5462130ff9702af604f6e59cd21f7a22daa64cda147eae4c57
+Writing manifest to image destination
+Storing signatures
+--> 482fcaa80ec
+Successfully tagged temp.builder.openshift.io/lqtpou-nodjs-app/nodjs-dev-4:b1cd252a
+482fcaa80ec40e5462130ff9702af604f6e59cd21f7a22daa64cda147eae4c57
+
+Pushing image image-registry.openshift-image-registry.svc:5000/lqtpou-nodjs-app/nodjs-dev:latest ...
+Getting image source signatures
+Copying blob sha256:8dfe9326f733b815c486432e93e0a97f03e90e7cc35def9511cd1efa7f917f56
+Copying blob sha256:0d875a68bf996a2e45cd381e8eb3c8b1efa6191d8e3f6ec98be685c7e9823815
+Copying blob sha256:db75fb66b7757bf7e48909dc7904b4956ab642d5f1d47ddf008855a2f0d7e574
+Copying blob sha256:950c796b5dbc22ecb4f4bd661013c9286715d238a0dbdd9b7ed1406c395086a1
+Copying blob sha256:37aff6685b0edd740a00bf0aeea3bdbd93dbc416c36a83ca1e8135a1e3816319
+Copying config sha256:482fcaa80ec40e5462130ff9702af604f6e59cd21f7a22daa64cda147eae4c57
+Writing manifest to image destination
+Storing signatures
+Successfully pushed image-registry.openshift-image-registry.svc:5000/lqtpou-nodjs-app/nodjs-dev@sha256:5740baee9de578b61607739013411ed53521f52015455ec5f9d97e97a0229e9b
+Push successful
+[student@workstation nodejs-app]$ oc get pods
+NAME                         READY   STATUS      RESTARTS   AGE
+nodjs-dev-1-build            0/1     Error       0          63m
+nodjs-dev-2-build            0/1     Completed   0          20m
+nodjs-dev-3-build            0/1     Completed   0          11m
+nodjs-dev-4-build            0/1     Completed   0          75s
+nodjs-dev-558f54fd57-p84gh   1/1     Running     0          36s
+[student@workstation nodejs-app]$ curl nodjs-dev-lqtpou-nodjs-app.apps.ap410.prod.nextcle.com
+Hello World from pod: nodjs-dev-558f54fd57-p84gh
+[student@workstation nodejs-app]$ oc delete 
+Display all 192 possibilities? (y or n)
+[student@workstation nodejs-app]$ oc get all 
+NAME                             READY   STATUS      RESTARTS   AGE
+pod/nodjs-dev-1-build            0/1     Error       0          70m
+pod/nodjs-dev-2-build            0/1     Completed   0          27m
+pod/nodjs-dev-3-build            0/1     Completed   0          18m
+pod/nodjs-dev-4-build            0/1     Completed   0          8m8s
+pod/nodjs-dev-558f54fd57-p84gh   1/1     Running     0          7m29s
+
+NAME                TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+service/nodjs-dev   ClusterIP   172.30.117.179   <none>        8080/TCP   70m
+
+NAME                        READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/nodjs-dev   1/1     1            1           70m
+
+NAME                                   DESIRED   CURRENT   READY   AGE
+replicaset.apps/nodjs-dev-558f54fd57   1         1         1       7m29s
+replicaset.apps/nodjs-dev-59f544c78f   0         0         0       26m
+replicaset.apps/nodjs-dev-5f7bd6f975   0         0         0       70m
+replicaset.apps/nodjs-dev-644b99b7d9   0         0         0       17m
+
+NAME                                       TYPE     FROM                      LATEST
+buildconfig.build.openshift.io/nodjs-dev   Source   Git@troubleshoot-review   4
+
+NAME                                   TYPE     FROM          STATUS                        STARTED             DURATION
+build.build.openshift.io/nodjs-dev-1   Source   Git@d9f8fe2   Failed (GenericBuildFailed)   About an hour ago   37s
+build.build.openshift.io/nodjs-dev-2   Source   Git@9935950   Complete                      27 minutes ago      41s
+build.build.openshift.io/nodjs-dev-3   Source   Git@5dedcb3   Complete                      18 minutes ago      39s
+build.build.openshift.io/nodjs-dev-4   Source   Git@80c7bbd   Complete                      8 minutes ago       40s
+
+NAME                                       IMAGE REPOSITORY                                                                                TAGS     UPDATED
+imagestream.image.openshift.io/nodjs-dev   default-route-openshift-image-registry.apps.ap410.prod.nextcle.com/lqtpou-nodjs-app/nodjs-dev   latest   7 minutes ago
+
+NAME                                 HOST/PORT                                                PATH   SERVICES    PORT       TERMINATION   WILDCARD
+route.route.openshift.io/nodjs-dev   nodjs-dev-lqtpou-nodjs-app.apps.ap410.prod.nextcle.com          nodjs-dev   8080-tcp                 None
+[student@workstation nodejs-app]$ oc get all --selector=nodjs
+No resources found in lqtpou-nodjs-app namespace.
+[student@workstation nodejs-app]$ oc get all --selector app=nodjs
+No resources found in lqtpou-nodjs-app namespace.
+[student@workstation nodejs-app]$ oc get all --selector app=nodjs -o name
+[student@workstation nodejs-app]$ oc get all --selector app=nodjs-app -o name
+[student@workstation nodejs-app]$ oc get all --selector app=nodjs-dev -o name
+service/nodjs-dev
+deployment.apps/nodjs-dev
+buildconfig.build.openshift.io/nodjs-dev
+build.build.openshift.io/nodjs-dev-1
+build.build.openshift.io/nodjs-dev-2
+build.build.openshift.io/nodjs-dev-3
+build.build.openshift.io/nodjs-dev-4
+imagestream.image.openshift.io/nodjs-dev
+route.route.openshift.io/nodjs-dev
+[student@workstation nodejs-app]$ 
+[student@workstation nodejs-app]$ 
+[student@workstation nodejs-app]$ oc delete all --selector app=nodjs-dev
+service "nodjs-dev" deleted
+deployment.apps "nodjs-dev" deleted
+buildconfig.build.openshift.io "nodjs-dev" deleted
+imagestream.image.openshift.io "nodjs-dev" deleted
+route.route.openshift.io "nodjs-dev" deleted
+[student@workstation nodejs-app]$ 
+[student@workstation nodejs-app]$ 
+[student@workstation nodejs-app]$ oc new-app --name nodejs-dev http://github.com/avoker/DO180-apps#troubleshoot-review --context-dir=nodejs-app -i nodejs:16-ubi8 --build-env npm_config_registry=http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs
+--> Found image dfd08e2 (5 months old) in image stream "openshift/nodejs" under tag "16-ubi8" for "nodejs:16-ubi8"
+
+    Node.js 16 
+    ---------- 
+    Node.js 16 available as container is a base platform for building and running various Node.js 16 applications and frameworks. Node.js is a platform built on Chrome's JavaScript runtime for easily building fast, scalable network applications. Node.js uses an event-driven, non-blocking I/O model that makes it lightweight and efficient, perfect for data-intensive real-time applications that run across distributed devices.
+
+    Tags: builder, nodejs, nodejs16
+
+    * The source repository appears to match: nodejs
+    * A source build using source code from http://github.com/avoker/DO180-apps#troubleshoot-review will be created
+      * The resulting image will be pushed to image stream tag "nodejs-dev:latest"
+      * Use 'oc start-build' to trigger a new build
+
+--> Creating resources ...
+    imagestream.image.openshift.io "nodejs-dev" created
+    buildconfig.build.openshift.io "nodejs-dev" created
+    deployment.apps "nodejs-dev" created
+    service "nodejs-dev" created
+--> Success
+    Build scheduled, use 'oc logs -f buildconfig/nodejs-dev' to track its progress.
+    Application is not exposed. You can expose services to the outside world by executing one or more of the commands below:
+     'oc expose service/nodejs-dev' 
+    Run 'oc status' to view your app.
+[student@workstation nodejs-app]$ oc get pods
+NAME                 READY   STATUS    RESTARTS   AGE
+nodejs-dev-1-build   1/1     Running   0          16s
+[student@workstation nodejs-app]$ oc get pods -w
+NAME                 READY   STATUS    RESTARTS   AGE
+nodejs-dev-1-build   1/1     Running   0          30s
+nodejs-dev-5cd464ff44-f4d95   0/1     Pending   0          0s
+nodejs-dev-5cd464ff44-f4d95   0/1     Pending   0          0s
+nodejs-dev-5cd464ff44-f4d95   0/1     ContainerCreating   0          0s
+nodejs-dev-1-build            0/1     Completed           0          40s
+nodejs-dev-5cd464ff44-f4d95   0/1     ContainerCreating   0          3s
+nodejs-dev-5cd464ff44-f4d95   1/1     Running             0          4s
+(reverse-i-search)`cur': ^Crl nodjs-dev-lqtpou-nodjs-app.apps.ap410.prod.nextcle.com
+[student@workstation nodejs-app]$ oc get route
+No resources found in lqtpou-nodjs-app namespace.
+[student@workstation nodejs-app]$ oc expose nodejs-dev
+error: the server doesn't have a resource type "nodejs-dev"
+[student@workstation nodejs-app]$ oc expose deployment/nodejs-dev
+Error from server (AlreadyExists): services "nodejs-dev" already exists
+[student@workstation nodejs-app]$ oc get svc
+NAME         TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+nodejs-dev   ClusterIP   172.30.146.149   <none>        8080/TCP   2m6s
+[student@workstation nodejs-app]$ oc expose svc nodejs-dev
+route.route.openshift.io/nodejs-dev exposed
+[student@workstation nodejs-app]$ oc get route
+NAME         HOST/PORT                                                 PATH   SERVICES     PORT       TERMINATION   WILDCARD
+nodejs-dev   nodejs-dev-lqtpou-nodjs-app.apps.ap410.prod.nextcle.com          nodejs-dev   8080-tcp                 None
+[student@workstation nodejs-app]$ curl nodjs-dev-lqtpou-nodjs-app.apps.ap410.prod.nextcle.com
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style type="text/css">
+      body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        line-height: 1.66666667;
+        font-size: 16px;
+        color: #333;
+        background-color: #fff;
+        margin: 2em 1em;
+      }
+      h1 {
+        font-size: 28px;
+        font-weight: 400;
+      }
+      p {
+        margin: 0 0 10px;
+      }
+      .alert.alert-info {
+        background-color: #F0F0F0;
+        margin-top: 30px;
+        padding: 30px;
+      }
+      .alert p {
+        padding-left: 35px;
+      }
+      ul {
+        padding-left: 51px;
+        position: relative;
+      }
+      li {
+        font-size: 14px;
+        margin-bottom: 1em;
+      }
+      p.info {
+        position: relative;
+        font-size: 20px;
+      }
+      p.info:before, p.info:after {
+        content: "";
+        left: 0;
+        position: absolute;
+        top: 0;
+      }
+      p.info:before {
+        background: #0066CC;
+        border-radius: 16px;
+        color: #fff;
+        content: "i";
+        font: bold 16px/24px serif;
+        height: 24px;
+        left: 0px;
+        text-align: center;
+        top: 4px;
+        width: 24px;
+      }
+
+      @media (min-width: 768px) {
+        body {
+          margin: 6em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <h1>Application is not available</h1>
+      <p>The application is currently not serving requests at this endpoint. It may not have been started or is still starting.</p>
+
+      <div class="alert alert-info">
+        <p class="info">
+          Possible reasons you are seeing this page:
+        </p>
+        <ul>
+          <li>
+            <strong>The host doesn't exist.</strong>
+            Make sure the hostname was typed correctly and that a route matching this hostname exists.
+          </li>
+          <li>
+            <strong>The host exists, but doesn't have a matching path.</strong>
+            Check if the URL path was typed correctly and that the route was created using the desired path.
+          </li>
+          <li>
+            <strong>Route and path matches, but all pods are down.</strong>
+            Make sure that the resources exposed by this route (pods, services, deployment configs, etc) have at least one pod running.
+          </li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>
+[student@workstation nodejs-app]$ curl nodejs-dev-lqtpou-nodjs-app.apps.ap410.prod.nextcle.com
+Hello World from pod: nodejs-dev-5cd464ff44-f4d95
+
