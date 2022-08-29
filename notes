@@ -185,8 +185,9 @@ http://todoapi-lqtpout-template.apps.ap410.prod.nextcle.com to pod port 30080 (s
 View details with 'oc describe <resource>/<name>' or list resources with 'oc get all'.
 [student@workstation multicontainer-openshift]$ 
 
-
---- oc logs man
+################
+# oc logs 
+################
 student@workstation ~]$ oc logs
 error: expected 'logs [-f] [-p] (POD | TYPE/NAME) [-c CONTAINER]'.
 POD or TYPE/NAME is a required argument for the logs command
@@ -248,7 +249,9 @@ since may be used.
 Use "oc options" for a list of global command-line options (applies to all commands).
 [student@workstation ~]$ 
 
--- oc label
+############
+# oc label
+############
 [student@workstation multicontainer-openshift]$ oc label 
 error: one or more resources must be specified as <resource> <name> or <resource>/<name>
 [student@workstation multicontainer-openshift]$ oc label -h
@@ -521,7 +524,10 @@ items:
 kind: List
 metadata: {}
 
-===
+############
+# oc get
+############
+
 [student@workstation ~]$ oc get pods -h
 Display one or many resources.
 
@@ -615,3 +621,263 @@ template format is golang templates [http://golang.org/pkg/text/template/#pkg-ov
 
 Use "oc options" for a list of global command-line options (applies to all commands).
 [student@workstation ~]$
+
+
+###
+[student@workstation ~]$ oc label --all app=nexus_old --overwrite
+error: one or more resources must be specified as <resource> <name> or <resource>/<name>
+[student@workstation ~]$ oc label all --all app=nexus_old --overwrite
+pod/nexus-d79b9b595-k99d2 labeled
+service/nexus labeled
+deployment.apps/nexus labeled
+replicaset.apps/nexus-d79b9b595 labeled
+route.route.openshift.io/nexus labeled
+[student@workstation ~]$ 
+
+
+[student@workstation ~]$ oc get all -l app=nexus_old
+NAME                        READY   STATUS    RESTARTS       AGE
+pod/nexus-d79b9b595-k99d2   1/1     Running   566 (4d ago)   6d
+
+NAME            TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)    AGE
+service/nexus   ClusterIP   172.30.13.72   <none>        8081/TCP   6d
+
+NAME                    READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/nexus   1/1     1            1           6d
+
+NAME                              DESIRED   CURRENT   READY   AGE
+replicaset.apps/nexus-d79b9b595   1         1         1       6d
+
+NAME                             HOST/PORT                                         PATH   SERVICES   PORT    TERMINATION   WILDCARD
+route.route.openshift.io/nexus   nexus-lqtpou-review.apps.ap410.prod.nextcle.com          nexus      nexus                 None
+[student@workstation ~]$ oc delete all -l app=nexus_old
+pod "nexus-d79b9b595-k99d2" deleted
+service "nexus" deleted
+deployment.apps "nexus" deleted
+replicaset.apps "nexus-d79b9b595" deleted
+route.route.openshift.io "nexus" deleted
+[student@workstation ~]$ oc get all
+NAME                        READY   STATUS        RESTARTS   AGE
+pod/nexus-d79b9b595-92g96   0/1     Terminating   0          9s
+[student@workstation ~]$ oc get all
+No resources found in lqtpou-review namespace.
+[student@workstation ~]$ 
+
+!!
+[student@workstation resources]$ envsubst < nexus-deployment.yaml |oc create -f -
+service/nexus created
+deployment.apps/nexus created
+Error from server (AlreadyExists): error when creating "STDIN": persistentvolumeclaims "nexus" already exists
+[student@workstation resources]$ 
+!!
+[student@workstation ~]$ oc get all
+No resources found in lqtpou-review namespace.
+[student@workstation ~]$ oc get pvc
+NAME    STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+nexus   Bound    pvc-36829d3b-2969-4ef9-9255-6252afe914c5   1Gi        RWO            standard       6d
+[student@workstation ~]$ 
+
+[student@workstation resources]$ envsubst < nexus-deployment.yaml |oc create -f -
+Error from server (AlreadyExists): error when creating "STDIN": services "nexus" already exists
+Error from server (AlreadyExists): error when creating "STDIN": object is being deleted: persistentvolumeclaims "nexus" already exists
+Error from server (AlreadyExists): error when creating "STDIN": deployments.apps "nexus" already exists
+[student@workstation resources]$ 
+
+!!
+[student@workstation ~]$ oc label all app=nexus2 --overwrite
+error: resource(s) were provided, but no name was specified
+[student@workstation ~]$ oc label --all app=nexus2 --overwrite
+error: one or more resources must be specified as <resource> <name> or <resource>/<name>
+[student@workstation ~]$ oc label all --all app=nexus2 --overwrite
+pod/nexus-d79b9b595-w47ns labeled
+service/nexus labeled
+deployment.apps/nexus labeled
+replicaset.apps/nexus-d79b9b595 labeled
+route.route.openshift.io/nexus labeled
+[student@workstation ~]$ 
+
+#################
+# oc new-app
+#################
+[student@workstation ~]$ oc new-app -h
+Create a new application by specifying source code, templates, and/or images.
+
+ This command will try to build up the components of an application using images, templates, or code that has a public
+repository. It will look up the images on the local container storage (if available), a container image registry, an
+integrated image stream, or stored templates.
+
+ If you specify a source code URL, it will set up a build that takes your source code and converts it into an image that
+can run inside of a pod. Local source must be in a git repository that has a remote repository that the server can see.
+The images will be deployed via a deployment or deployment configuration, and a service will be connected to the first
+public port of the app. You may either specify components using the various existing flags or let oc new-app autodetect
+what kind of components you have provided.
+
+ If you provide source code, a new build will be automatically triggered. You can use 'oc status' to check the progress.
+
+Usage:
+  oc new-app (IMAGE | IMAGESTREAM | TEMPLATE | PATH | URL ...) [flags]
+
+Examples:
+  # List all local templates and image streams that can be used to create an app
+  oc new-app --list
+  
+  # Create an application based on the source code in the current git repository (with a public remote) and a container
+image
+  oc new-app . --image=registry/repo/langimage
+  
+  # Create an application myapp with Docker based build strategy expecting binary input
+  oc new-app  --strategy=docker --binary --name myapp
+  
+  # Create a Ruby application based on the provided [image]~[source code] combination
+  oc new-app centos/ruby-25-centos7~https://github.com/sclorg/ruby-ex.git
+  
+  # Use the public container registry MySQL image to create an app. Generated artifacts will be labeled with db=mysql
+  oc new-app mysql MYSQL_USER=user MYSQL_PASSWORD=pass MYSQL_DATABASE=testdb -l db=mysql
+  
+  # Use a MySQL image in a private registry to create an app and override application artifacts' names
+  oc new-app --image=myregistry.com/mycompany/mysql --name=private
+  
+  # Create an application from a remote repository using its beta4 branch
+  oc new-app https://github.com/openshift/ruby-hello-world#beta4
+  
+  # Create an application based on a stored template, explicitly setting a parameter value
+  oc new-app --template=ruby-helloworld-sample --param=MYSQL_USER=admin
+  
+  # Create an application from a remote repository and specify a context directory
+  oc new-app https://github.com/youruser/yourgitrepo --context-dir=src/build
+  
+  # Create an application from a remote private repository and specify which existing secret to use
+  oc new-app https://github.com/youruser/yourgitrepo --source-secret=yoursecret
+  
+  # Create an application based on a template file, explicitly setting a parameter value
+  oc new-app --file=./example/myapp/template.json --param=MYSQL_USER=admin
+  
+  # Search all templates, image streams, and container images for the ones that match "ruby"
+  oc new-app --search ruby
+  
+  # Search for "ruby", but only in stored templates (--template, --image-stream and --image
+  # can be used to filter search results)
+  oc new-app --search --template=ruby
+  
+  # Search for "ruby" in stored templates and print the output as YAML
+  oc new-app --search --template=ruby --output=yaml
+
+Options:
+      --allow-missing-images=false: If true, indicates that referenced container images that cannot be found locally or
+in a registry should still be used.
+      --allow-missing-imagestream-tags=false: If true, indicates that image stream tags that don't exist should still be
+used.
+      --allow-missing-template-keys=false: If true, ignore any errors in templates when a field or map key is missing in
+the template. Only applies to golang and jsonpath output formats.
+      --as-deployment-config=false: If true create this application as a deployment config, which allows for hooks and
+custom strategies.
+      --as-test=false: If true create this application as a test deployment, which validates that the deployment
+succeeds and then scales down.
+      --binary=false: Instead of expecting a source URL, set the build to expect binary contents. Will disable triggers.
+      --build-env=[]: Specify a key-value pair for an environment variable to set into each build image.
+      --build-env-file=[]: File containing key-value pairs of environment variables to set into each build image.
+      --code=[]: Source code to use to build this application.
+      --context-dir='': Context directory to be used for the build.
+      --dry-run=false: If true, show the result of the operation without performing it.
+  -e, --env=[]: Specify a key-value pair for an environment variable to set into each container.
+      --env-file=[]: File containing key-value pairs of environment variables to set into each container.
+  -f, --file=[]: Path to a template file to use for the app.
+      --grant-install-rights=false: If true, a component that requires access to your account may use your token to
+install software into your project. Only grant images you trust the right to run with your token.
+      --group=[]: Indicate components that should be grouped together as <comp1>+<comp2>.
+      --ignore-unknown-parameters=false: If true, will not stop processing if a provided parameter does not exist in the
+template.
+      --image=[]: Name of a container image to include in the app.  Note:  not specifying a registry or repository means
+defaults in place for client image pulls are employed.
+  -i, --image-stream=[]: Name of an image stream to use in the app.
+      --insecure-registry=false: If true, indicates that the referenced container images are on insecure registries and
+should bypass certificate checking
+  -l, --labels='': Label to set in all resources for this application.
+  -L, --list=false: List all local templates and image streams that can be used to create.
+      --name='': Set name to use for generated application artifacts
+      --no-install=false: Do not attempt to run images that describe themselves as being installable
+  -o, --output='': Output format. One of:
+json|yaml|name|go-template|go-template-file|template|templatefile|jsonpath|jsonpath-as-json|jsonpath-file.
+      --output-version='': The preferred API versions of the output objects
+  -p, --param=[]: Specify a key-value pair (e.g., -p FOO=BAR) to set/override a parameter value in the template.
+      --param-file=[]: File containing parameter values to set/override in the template.
+  -S, --search=false: Search all templates, image streams, and container images that match the arguments provided.
+  -a, --show-all=false: When printing, show all resources (default hide terminated pods.)
+      --show-labels=false: When printing, show all labels as the last column (default hide labels column)
+      --show-managed-fields=false: If true, keep the managedFields when printing objects in JSON or YAML format.
+      --sort-by='': If non-empty, sort list types using this field specification.  The field specification is expressed
+as a JSONPath expression (e.g. '{.metadata.name}'). The field in the API resource specified by this JSONPath expression
+must be an integer or a string.
+      --source-secret='': The name of an existing secret that should be used for cloning a private git repository.
+      --strategy=: Specify the build strategy to use if you don't want to detect (docker|pipeline|source). NOTICE: the
+pipeline strategy is deprecated; consider using Jenkinsfiles directly on Jenkins or OpenShift Pipelines.
+      --template=[]: Name of a stored template to use in the app.
+
+Use "oc options" for a list of global command-line options (applies to all commands).
+[student@workstation ~]$ 
+
+
+# options
+[student@workstation ~]$ oc options 
+The following options can be passed to any command:
+
+      --add-dir-header=false: If true, adds the file directory to the header of the log messages (DEPRECATED: will be
+removed in a future release, see
+https://github.com/kubernetes/enhancements/tree/master/keps/sig-instrumentation/2845-deprecate-klog-specific-flags-in-k8s-components)
+      --alsologtostderr=false: log to standard error as well as files (DEPRECATED: will be removed in a future release,
+see
+https://github.com/kubernetes/enhancements/tree/master/keps/sig-instrumentation/2845-deprecate-klog-specific-flags-in-k8s-components)
+      --as='': Username to impersonate for the operation. User could be a regular user or a service account in a
+namespace.
+      --as-group=[]: Group to impersonate for the operation, this flag can be repeated to specify multiple groups.
+      --as-uid='': UID to impersonate for the operation.
+      --cache-dir='/home/student/.kube/cache': Default cache directory
+      --certificate-authority='': Path to a cert file for the certificate authority
+      --client-certificate='': Path to a client certificate file for TLS
+      --client-key='': Path to a client key file for TLS
+      --cluster='': The name of the kubeconfig cluster to use
+      --context='': The name of the kubeconfig context to use
+      --insecure-skip-tls-verify=false: If true, the server's certificate will not be checked for validity. This will
+make your HTTPS connections insecure
+      --kubeconfig='': Path to the kubeconfig file to use for CLI requests.
+      --log-backtrace-at=:0: when logging hits line file:N, emit a stack trace (DEPRECATED: will be removed in a future
+release, see
+https://github.com/kubernetes/enhancements/tree/master/keps/sig-instrumentation/2845-deprecate-klog-specific-flags-in-k8s-components)
+      --log-dir='': If non-empty, write log files in this directory (DEPRECATED: will be removed in a future release,
+see
+https://github.com/kubernetes/enhancements/tree/master/keps/sig-instrumentation/2845-deprecate-klog-specific-flags-in-k8s-components)
+      --log-file='': If non-empty, use this log file (DEPRECATED: will be removed in a future release, see
+https://github.com/kubernetes/enhancements/tree/master/keps/sig-instrumentation/2845-deprecate-klog-specific-flags-in-k8s-components)
+      --log-file-max-size=1800: Defines the maximum size a log file can grow to. Unit is megabytes. If the value is 0,
+the maximum file size is unlimited. (DEPRECATED: will be removed in a future release, see
+https://github.com/kubernetes/enhancements/tree/master/keps/sig-instrumentation/2845-deprecate-klog-specific-flags-in-k8s-components)
+      --log-flush-frequency=5s: Maximum number of seconds between log flushes
+      --loglevel=0: Set the level of log output (0-10)
+      --logtostderr=true: log to standard error instead of files (DEPRECATED: will be removed in a future release, see
+https://github.com/kubernetes/enhancements/tree/master/keps/sig-instrumentation/2845-deprecate-klog-specific-flags-in-k8s-components)
+      --match-server-version=false: Require server version to match client version
+  -n, --namespace='': If present, the namespace scope for this CLI request
+      --one-output=false: If true, only write logs to their native severity level (vs also writing to each lower
+severity level) (DEPRECATED: will be removed in a future release, see
+https://github.com/kubernetes/enhancements/tree/master/keps/sig-instrumentation/2845-deprecate-klog-specific-flags-in-k8s-components)
+      --request-timeout='0': The length of time to wait before giving up on a single server request. Non-zero values
+should contain a corresponding time unit (e.g. 1s, 2m, 3h). A value of zero means don't timeout requests.
+  -s, --server='': The address and port of the Kubernetes API server
+      --skip-headers=false: If true, avoid header prefixes in the log messages (DEPRECATED: will be removed in a future
+release, see
+https://github.com/kubernetes/enhancements/tree/master/keps/sig-instrumentation/2845-deprecate-klog-specific-flags-in-k8s-components)
+      --skip-log-headers=false: If true, avoid headers when opening log files (DEPRECATED: will be removed in a future
+release, see
+https://github.com/kubernetes/enhancements/tree/master/keps/sig-instrumentation/2845-deprecate-klog-specific-flags-in-k8s-components)
+      --stderrthreshold=2: logs at or above this threshold go to stderr (DEPRECATED: will be removed in a future
+release, see
+https://github.com/kubernetes/enhancements/tree/master/keps/sig-instrumentation/2845-deprecate-klog-specific-flags-in-k8s-components)
+      --tls-server-name='': Server name to use for server certificate validation. If it is not provided, the hostname
+used to contact the server is used
+      --token='': Bearer token for authentication to the API server
+      --user='': The name of the kubeconfig user to use
+  -v, --v=0: number for the log level verbosity
+      --vmodule=: comma-separated list of pattern=N settings for file-filtered logging
+      --warnings-as-errors=false: Treat warnings received from the server as errors and exit with a non-zero exit code
+[student@workstation ~]$ 
+
