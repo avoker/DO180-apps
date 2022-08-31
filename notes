@@ -816,8 +816,10 @@ pipeline strategy is deprecated; consider using Jenkinsfiles directly on Jenkins
 Use "oc options" for a list of global command-line options (applies to all commands).
 [student@workstation ~]$ 
 
+############################
+# oc options
+############################
 
-# options
 [student@workstation ~]$ oc options 
 The following options can be passed to any command:
 
