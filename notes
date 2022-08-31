@@ -881,3 +881,178 @@ used to contact the server is used
       --warnings-as-errors=false: Treat warnings received from the server as errors and exit with a non-zero exit code
 [student@workstation ~]$ 
 
+[student@workstation nodejs-app]$ oc new-app --name nodejs-dev nodejs:16-ubi8~. --context-dir=nodejs-app --build-env npm_config_registry=http://nexus-common.apps.ap410.prod.nextcle.com/repository/nodejs 
+--> Found image dfd08e2 (6 months old) in image stream "openshift/nodejs" under tag "16-ubi8" for "nodejs:16-ubi8"
+
+    Node.js 16 
+    ---------- 
+    Node.js 16 available as container is a base platform for building and running various Node.js 16 applications and frameworks. Node.js is a platform built on Chrome's JavaScript runtime for easily building fast, scalable network applications. Node.js uses an event-driven, non-blocking I/O model that makes it lightweight and efficient, perfect for data-intensive real-time applications that run across distributed devices.
+
+    Tags: builder, nodejs, nodejs16
+
+    * A source build using source code from https://github.com/avoker/DO180-apps#troubleshoot-review will be created
+      * The resulting image will be pushed to image stream tag "nodejs-dev:latest"
+      * Use 'oc start-build' to trigger a new build
+
+--> Creating resources ...
+    imagestream.image.openshift.io "nodejs-dev" created
+    buildconfig.build.openshift.io "nodejs-dev" created
+    deployment.apps "nodejs-dev" created
+    service "nodejs-dev" created
+--> Success
+    Build scheduled, use 'oc logs -f buildconfig/nodejs-dev' to track its progress.
+    Application is not exposed. You can expose services to the outside world by executing one or more of the commands below:
+     'oc expose service/nodejs-dev' 
+    Run 'oc status' to view your app.
+[student@workstation nodejs-app]$ oc status
+In project lqtpou-nodejs-app on server https://api.ap410.prod.nextcle.com:6443
+
+svc/nodejs-dev - 172.30.134.62:8080
+  deployment/nodejs-dev deploys istag/nodejs-dev:latest <-
+    bc/nodejs-dev source builds https://github.com/avoker/DO180-apps#troubleshoot-review on openshift/nodejs:16-ubi8 
+      build #1 running for 7 seconds
+    deployment #1 running for 7 seconds - 0/1 pods growing to 1
+
+
+1 info identified, use 'oc status --suggest' to see details.
+[student@workstation nodejs-app]$
+
+
+#############
+# oc delete
+#############
+[student@workstation ~]$ oc delete -h
+Delete resources by file names, stdin, resources and names, or by resources and label selector.
+
+ JSON and YAML formats are accepted. Only one type of argument may be specified: file names, resources and names, or
+resources and label selector.
+
+ Some resources, such as pods, support graceful deletion. These resources define a default period before they are
+forcibly terminated (the grace period) but you may override that value with the --grace-period flag, or pass --now to
+set a grace-period of 1. Because these resources often represent entities in the cluster, deletion may not be
+acknowledged immediately. If the node hosting a pod is down or cannot reach the API server, termination may take
+significantly longer than the grace period. To force delete a resource, you must specify the --force flag. Note: only a
+subset of resources support graceful deletion. In absence of the support, the --grace-period flag is ignored.
+
+ IMPORTANT: Force deleting pods does not wait for confirmation that the pod's processes have been terminated, which can
+leave those processes running until the node detects the deletion and completes graceful deletion. If your processes use
+shared storage or talk to a remote API and depend on the name of the pod to identify themselves, force deleting those
+pods may result in multiple processes running on different machines using the same identification which may lead to data
+corruption or inconsistency. Only force delete pods when you are sure the pod is terminated, or if your application can
+tolerate multiple copies of the same pod running at once. Also, if you force delete pods, the scheduler may place new
+pods on those nodes before the node has released those resources and causing those pods to be evicted immediately.
+
+ Note that the delete command does NOT do resource version checks, so if someone submits an update to a resource right
+when you submit a delete, their update will be lost along with the rest of the resource.
+
+Usage:
+  oc delete ([-f FILENAME] | [-k DIRECTORY] | TYPE [(NAME | -l label | --all)]) [flags]
+
+Examples:
+  # Delete a pod using the type and name specified in pod.json
+  oc delete -f ./pod.json
+  
+  # Delete resources from a directory containing kustomization.yaml - e.g. dir/kustomization.yaml
+  oc delete -k dir
+  
+  # Delete a pod based on the type and name in the JSON passed into stdin
+  cat pod.json | oc delete -f -
+  
+  # Delete pods and services with same names "baz" and "foo"
+  oc delete pod,service baz foo
+  
+  # Delete pods and services with label name=myLabel
+  oc delete pods,services -l name=myLabel
+  
+  # Delete a pod with minimal delay
+  oc delete pod foo --now
+  
+  # Force delete a pod on a dead node
+  oc delete pod foo --force
+  
+  # Delete all pods
+  oc delete pods --all
+
+Options:
+      --all=false: Delete all resources, in the namespace of the specified resource types.
+  -A, --all-namespaces=false: If present, list the requested object(s) across all namespaces. Namespace in current
+context is ignored even if specified with --namespace.
+      --cascade='background': Must be "background", "orphan", or "foreground". Selects the deletion cascading strategy
+for the dependents (e.g. Pods created by a ReplicationController). Defaults to background.
+      --dry-run='none': Must be "none", "server", or "client". If client strategy, only print the object that would be
+sent, without sending it. If server strategy, submit server-side request without persisting the resource.
+      --field-selector='': Selector (field query) to filter on, supports '=', '==', and '!='.(e.g. --field-selector
+key1=value1,key2=value2). The server only supports a limited number of field queries per type.
+  -f, --filename=[]: containing the resource to delete.
+      --force=false: If true, immediately remove resources from API and bypass graceful deletion. Note that immediate
+deletion of some resources may result in inconsistency or data loss and requires confirmation.
+      --grace-period=-1: Period of time in seconds given to the resource to terminate gracefully. Ignored if negative.
+Set to 1 for immediate shutdown. Can only be set to 0 when --force is true (force deletion).
+      --ignore-not-found=false: Treat "resource not found" as a successful delete. Defaults to "true" when --all is
+specified.
+  -k, --kustomize='': Process a kustomization directory. This flag can't be used together with -f or -R.
+      --now=false: If true, resources are signaled for immediate shutdown (same as --grace-period=1).
+  -o, --output='': Output mode. Use "-o name" for shorter output (resource/name).
+      --raw='': Raw URI to DELETE to the server.  Uses the transport specified by the kubeconfig file.
+  -R, --recursive=false: Process the directory used in -f, --filename recursively. Useful when you want to manage
+related manifests organized within the same directory.
+  -l, --selector='': Selector (label query) to filter on.
+      --timeout=0s: The length of time to wait before giving up on a delete, zero means determine a timeout from the
+size of the object
+      --wait=true: If true, wait for resources to be gone before returning. This waits for finalizers.
+
+Use "oc options" for a list of global command-line options (applies to all commands).
+
+Update the labels on a resource.
+
+  *  A label key and value must begin with a letter or number, and may contain letters, numbers, hyphens, dots, and underscores, up to  63 characters each.
+  *  Optionally, the key can begin with a DNS subdomain prefix and a single '/', like example.com/my-app.
+  *  If --overwrite is true, then existing labels can be overwritten, otherwise attempting to overwrite a label will result in an error.
+  *  If --resource-version is specified, then updates will use this resource version, otherwise the existing resource-version will be used.
+
+##########################
+# oc label
+##########################
+Usage:
+  oc label [--overwrite] (-f FILENAME | TYPE NAME) KEY_1=VAL_1 ... KEY_N=VAL_N [--resource-version=version] [flags]
+
+Examples:
+  # Update pod 'foo' with the label 'unhealthy' and the value 'true'
+  oc label pods foo unhealthy=true
+  
+  # Update pod 'foo' with the label 'status' and the value 'unhealthy', overwriting any existing value
+  oc label --overwrite pods foo status=unhealthy
+  
+  # Update all pods in the namespace
+  oc label pods --all status=unhealthy
+  
+  # Update a pod identified by the type and name in "pod.json"
+  oc label -f pod.json status=unhealthy
+  
+  # Update pod 'foo' only if the resource is unchanged from version 1
+  oc label pods foo status=unhealthy --resource-version=1
+  
+  # Update pod 'foo' by removing a label named 'bar' if it exists
+  # Does not require the --overwrite flag
+  oc label pods foo bar-
+
+Options:
+      --all=false: Select all resources, in the namespace of the specified resource types
+  -A, --all-namespaces=false: If true, check the specified action in all namespaces.
+      --allow-missing-template-keys=true: If true, ignore any errors in templates when a field or map key is missing in the template. Only applies to golang and jsonpath output formats.
+      --dry-run='none': Must be "none", "server", or "client". If client strategy, only print the object that would be sent, without sending it. If server strategy, submit server-side request without persisting the resource.
+      --field-manager='kubectl-label': Name of the manager used to track field ownership.
+      --field-selector='': Selector (field query) to filter on, supports '=', '==', and '!='.(e.g. --field-selector key1=value1,key2=value2). The server only supports a limited number of field queries per type.
+  -f, --filename=[]: Filename, directory, or URL to files identifying the resource to update the labels
+  -k, --kustomize='': Process the kustomization directory. This flag can't be used together with -f or -R.
+      --list=false: If true, display the labels for a given resource.
+      --local=false: If true, label will NOT contact api-server but run locally.
+  -o, --output='': Output format. One of: json|yaml|name|go-template|go-template-file|template|templatefile|jsonpath|jsonpath-as-json|jsonpath-file.
+      --overwrite=false: If true, allow labels to be overwritten, otherwise reject label updates that overwrite existing labels.
+  -R, --recursive=false: Process the directory used in -f, --filename recursively. Useful when you want to manage related manifests organized within the same directory.
+      --resource-version='': If non-empty, the labels update will only succeed if this is the current resource-version for the object. Only valid when specifying a single resource.
+  -l, --selector='': Selector (label query) to filter on, supports '=', '==', and '!='.(e.g. -l key1=value1,key2=value2).
+      --show-managed-fields=false: If true, keep the managedFields when printing objects in JSON or YAML format.
+      --template='': Template string or path to template file to use when -o=go-template, -o=go-template-file. The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview].
+
+Use "oc options" for a list of global command-line options (applies to all commands).
