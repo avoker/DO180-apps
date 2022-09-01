@@ -1,0 +1,281 @@
+    2  podman images
+    6  podman ps -a
+    7  podman rm kind_kapitsa
+    8  podman images
+    9  podman rmi 2a3b3c186815
+   13  podman build --layers=false -t nexus .
+   16  podman ps
+   17  podman ps -a
+   18  podman logs -l
+   21  podman build --layers=false -t nexus .
+   23  podman images
+   25  podman ps
+   28  podman ps
+   29  podman logs trusting_shtern
+   41  podman ps
+   42  podman cp /bin/ps trusting_shtern:/bin
+   43  podman ps
+   44  podman ps -a
+   45  podman start affectionate_hermann
+   46  podman ps
+   47  podman ps -a
+   48  podman start trusting_shtern
+   49  podman ps -a
+   50  podman ps
+   51  podman attach -l 
+   52  podman ps
+   53  podman start -l
+   54  podman ps
+   55  podman attach -it /bin/bash
+   56  podman attach -it -l /bin/bash
+   57  podman exec -it -l /bin/bash
+   58  podman ps
+   62  podman ps
+   63  podman rm trusting_shtern
+   64  podman rm -f trusting_shtern
+   65  podman ps -a
+   66  podman rm affectionate_hermann
+   67  podman images
+   68  history|grep "podman run"
+   83  podman ps -a
+   84  podman images
+   89  podman push nexus quay.io/alan_lu/nexus:latest
+   90  podman -cred=alan_lu: push nexus quay.io/alan_lu/nexus:latest
+   91  podman --cred=alan_lu: push nexus quay.io/alan_lu/nexus:latest
+   92  podman --creds=alan_lu: push nexus quay.io/alan_lu/nexus:latest
+   93  podman push --creds= nexus quay.io/alan_lu/nexus:latest
+   94  podman push --creds=alan_lu: nexus quay.io/alan_lu/nexus:latest
+   95  podman images
+   96  podman tag nexus quay.io/alan_lu/nexus:latest
+   97  podman images
+   98  podman rmi 7103f7ff6968
+  146  podman login quay.io/alan_lu
+  147  podman login quay.io
+  150  podman login quay.io
+  152  podman search -q quay.io/alan_lu/nexus
+  153  podman search quay.io/alan_lu/nexus
+  154  podman pull quay.io/alan_lu/nexus:latest
+  156  podman images
+  157  podman rmi eca062710c39
+  158  podman rmi quay.io/alan_lu/nexus:lates
+  159  podman images
+  160  podman pull quay.io/alan_lu/nexus:latest
+  161  podman images
+  222  podman images
+  229  podman run -d -v /tmp/docker/work/:/opt/nexus/sonatype-work -p 18081:8081 quay.io/alan_lu/nexus
+  230  podman ps
+  231  podman exec sh pwd
+  232  podman exec -l sh pwd
+  233  podman exec -l sh ls -l
+  234  podman exec -it sh ls -l
+  235  podman exec -it -l sh ls -l
+  236  podman exec -it -l sh pwd
+  237  podman exec -it agitated_dijkstra bash 
+  238  podman ps
+  248  podman stop -l
+  249  podman images
+  250  podman rmi quay.io/alan_lu/nexus
+  251  podman images
+  253  podman build -t nexus .
+  254  podman images
+  255  podman ps
+  256  podman ps -a
+  262  podman ps
+  263  podman ps -a
+  266  history|grep podman tag
+  267  history|grep "podman tag"
+  268  podman tag nexus quay.io/alan_lu/nexus:latest
+  269  history|grep "podman push"
+  270  podman push quay.io/alan_lu/nexus:latest
+  271  podman push --creds=alan_lu: quay.io/alan_lu/nexus:latest
+  322  podman ps
+  324  podman exec -l -it /bin/bash
+  377  podman images
+  378  podman build -t nexus .
+  379  podman images
+  380  podman tag nexus quay.io/alan_lu/nexus
+  381  podman images
+  382  podman push quay.io/alan_lu/nexus
+  383  podman-push -h
+  384  podman push 
+  385  podman push --creds alan_lu: quay.io/alan_lu/nexus
+  387  podman login quay.io
+  388  podman push quay.io/alan_lu/nexus
+  454  man podman-run
+  455  podman ps --format="table {{.ID}} {{.Name}}" -l
+  456  podman ps --format="table {{.ID}} {{.Name}}" 
+  457  podman ps --format="{{.ID}} {{.Name}}" 
+  458  podman ps
+  459  podman ps --format="{{.ID}} {{.Name}}"  mysql-1
+  460  podman ps --format="{{.ID}} {{.Name}}" --name mysql-1
+  461  podman ps --format="{{.ID}} {{.Name}}" -n mysql-1
+  462  podman ps
+  463  podman ps --format="table {{.ID}} {{.Names}}" 
+  467  podman pull quay.io/redhattraining/httpd-parent:2.4
+  468  podman login quay.io
+  472  podman login quay.io
+  473  podman images
+  474  podman run -d --name httpd-basic -p 8080:80 quay.io/redhattraining/httpd-parent:2.4
+  475  podman ps
+  477  podman exec -l "echo Hello World > /var/www/html/index.html"
+  478  podman exec -l "sh -c 'echo Hello World > /var/www/html/index.html'"
+  479  podman exec -l "sh -c echo Hello World > /var/www/html/index.html"
+  480  podman exec -it -l /bin/bash
+  481  podman ps
+  483  podman exec -i -l "echo Hello World > /var/www/html/index.html"
+  484  podman exec -i -l "/bin/bash -c echo Hello World > /var/www/html/index.html"
+  485  podman exec -i -l "/bin/bash -c print 'Hello World' > /var/www/html/index.html"
+  487  podman exec -i -l "/bin/echo Hello World > /var/www/html/index.html"
+  488  podman ps
+  489  podman images
+  500  podman run -d --name mysql-1 -p 13306:3306 -v /home/student/local/mysql:/var/lib/mysql/data:Z -e MYSQL_USER=user1 -e MYSQL_PASSWORD=mypa55 -e MYSQL_DATABASE=items -e MYSQL_ROOT_PASSWORD=r00tpa55 registry.redhat.io/rhel8/mysql-80:1
+  501  podman log registry.redhat.io
+  502  podman login registry.redhat.io
+  503  podman run -d --name mysql-1 -p 13306:3306 -v /home/student/local/mysql:/var/lib/mysql/data:Z -e MYSQL_USER=user1 -e MYSQL_PASSWORD=mypa55 -e MYSQL_DATABASE=items -e MYSQL_ROOT_PASSWORD=r00tpa55 registry.redhat.io/rhel8/mysql-80:1
+  504  podman ps
+  507  podman exec -i -l mysql -uroot -p items < db.sql 
+  508  podman exec -i -l mysql -uroot -pr00tpa55 items < db.sql 
+  509  podman exec -i -l mysql -uroot -pr00tpa55 -P13306 items < db.sql 
+  510  podman exec -it -l /bin/bash
+  511  podman ps
+  512  podman exec -it -l /bin/bash
+  516  podman exec -it -l /bin/bash
+  518  podman exec -it -l /bin/bash
+  519  podman exec -i -l mysql -uroot -pr00tpa55 items -hlocalhost < db.sql 
+  523  podman exec -i -l mysql -uroot -pr00tpa55 items -h127.0.0.1 < db.sql 
+  525  podman ps
+  526  podman exec -it -l /bin/bash
+  527  podman ps
+  528  podman start -l
+  529  podman -s
+  530  podman ps
+  532  podman stop -l
+  533  podman run -d --name mysql-2 -p 13306:3306 -v /home/student/local/mysql:/var/lib/mysql/data:Z -e MYSQL_USER=user1 -e MYSQL_PASSWORD=mypa55 -e MYSQL_DATABASE=items -e MYSQL_ROOT_PASSWORD=r00tpa55 registry.redhat.io/rhel8/mysql-80:1
+  534  podman ps -a
+  535  podman ps -a > /tmp/my-containers
+  536  podman exec -it -l /bin/bash
+  537  podman ps
+  538  podman ps -a
+  540  podman rm dd6e14202fd5
+  541  podman ps -a
+  542  podman ps
+  549  podman pull quay.io/redhattraining/ngix:1.17
+  550  podman login quay.io
+  551  podman pull quay.io/redhattraining/ngix:1.17
+  552  podman pull quay.io/redhattraining/nginx:1.17
+  553  podman images
+  556  podman commit -h
+  557  podman ps -a
+  558  podman ps
+  559  podman ps -a
+  560  podman login registry.redhat.io
+  561  podman search mysql
+  564  podman search registry.redhat.io/mysql
+  565  podman search registry.redhat.io/mysql --list-tags
+  566  podman search --list-tags registry.redhat.io/mysql 
+  567  podman search --list-tags registry.redhat.io/rhel
+  568  podman search --list-tags rhel
+  569  podman ps -a
+  570  podman save nexus:latest |less
+  571  podman save -o nexus.tar nexus:latest 
+  575  podman images
+  577  podman run -d --name official-nginx -p 8080:80 nginx:1.17
+  578  podman ps
+  581  podman exec -it -l /bin/bash
+  582  podman ps
+  583  podman stop -l
+  584  podman commit -a "Alan Lu"  0e4b96c05495 do180/mynginx:v1.0-SNAPSHOT 
+  585  podman images
+  586  podman run -d --name official-nginx-dev -p 8080:80 do180/mynginx
+  587  podman ps
+  588  podman ps -a
+  589  podman inspect -l |less
+  591  podman exec -l -it /bin/bash
+  593  podman stop -l
+  594  podman commit -a "Alan Lu" -l do180/mynginx:v1.0 
+  595  podman commit -a "Alan Lu" official-nginx-dev do180/mynginx:v1.0 
+  596  podman images
+  597  podman rmi 85f6d7f9bc65
+  598  podman ps -a
+  599  podman rm official-nginx-dev
+  600  podman rmi 85f6d7f9bc65
+  601  podman images
+  602  podman run -d --name my-nginx -p 8280:80 f7840d1b6ccb
+  603  podman ps
+  611  podman build -h
+  613  podman cp -l
+  614  podman cp -h
+  615  podman ps
+  616  podman cp /bin/ps containerfile:/bin/ps
+  617  podman mount -h
+  618  podman mount
+  619  podman unshare mount
+  620  man podman-start 
+  637  podman build -t do180/custom-apache . 
+  639  podman build -t do180/custom-apache . 
+  640  podman images
+  641  podman inspect localhost/do180/custom-apache |less
+  642  podman build -t do180/custom-apache --layers=false . 
+  643  podman inspect localhost/do180/custom-apache |less
+  644  podman run -t containerfile -d -p 20080:8080 do180/custom-apache
+  645  podman run -t containerfile -d -p 20080:8080 localhost/do180/custom-apache
+  646  podman images
+  647  podman run --name containerfile -d -p 20080:8080 localhost/do180/custom-apache
+  648  podman run -h
+  649  podman run --help
+  651  podman exec -it -l /bin/bash
+  652  podman ps
+  653  podman exec -it -l /bin/bash
+  654  podman ps
+  655  podman exec -it containerfile /bin/bash
+  656  podman stop containerfile
+  657  podman start -v /bin:/bin -v /lib:/lib -v /lib64:/lib64 containerfile
+  658  podman rm containerfile
+  659  podman run -d -v /bin:/bin -v /lib:/lib -v /lib64:/lib64 --name containerfile localhost/do180/custom-apache
+  660  podman exec -l -it /bin/bash
+  661  podman exec  -it containerfile /bin/bash
+  662  podman ps
+  663  podman ps -a
+  664  podman rm c036d37332aa
+  665  podman rm 9056d1233012
+  666  podman ps
+  667  podman logs containerfile
+  673  podman unshare ls -l /usr/lib64/httpd/modules/
+  674  podman logs containerfile
+  676  history|podman run |tail -n 10
+  677  history|grep "podman run"|tail -n 10
+  678  podman ps
+  679  podman rm containerfile
+  680  podman run -d -v /bin:/bin:z -v /lib:/lib:z -v /lib64:/lib64:z --name containerfile localhost/do180/custom-apache
+  685  podman cp /lib64/libprocps.so.7 containerfile2:/lib64/libprocps.so.7
+  686  podman cp /bin/ps containerfile2:/bin/ps
+  687  podman ps
+  688  podman exec -it 08acc1bda8d0 /bin/bash
+  689  podman cp /bin/ps containerfile2:/bin/ps
+  691  podman cp /lib64/libprocps.so.7 containerfile2:/lib64/libprocps.so.7
+  693  podman ps
+  702  podman ps -a
+  703  podman ps
+  704  podman inspect 08acc1bda8d0|less
+  705  podman inspect de38dcecfe9f
+  706  podman inspect de38dcecfe9f|grep -i env
+  707  podman inspect de38dcecfe9f|less
+  708  podman inspect 08acc1bda8d0|grep -i env -A20
+  832  podman login docker://registry.redhat.io
+  833  podman login registry.redhat.io
+  837  podman images
+  842  podman images
+  845  podman ps
+  848  podman login quay.io -u alan_lu
+  850  podman login quay.io
+  852  podman images
+  853  podman tag localhost/do180-mysql-80-rhel8 quay.io/alan_lu/do180-mysql-80-rhel8
+  854  podman images
+  855  podman push quay.io/alan_lu/do180-mysql-80-rhel8
+  862  podman images
+  863  podman push localhost/do180/quote-php quay.io/alan_lu/do180/quote-php
+  864  podman images
+  884  podman tag -h
+  976  podman images
+ 1000  history|grep podman
+ 1001  history|grep podman > podman.lab.hist
