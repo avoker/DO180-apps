@@ -1058,3 +1058,29 @@ Options:
       --template='': Template string or path to template file to use when -o=go-template, -o=go-template-file. The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview].
 
 Use "oc options" for a list of global command-line options (applies to all commands).
+
+
+
+####################
+Containfile Example
+####################
+FROM ubi8/ubi:8.5
+MAINTAINER Alan Lu <alan.lu@ice.com>
+
+ARG NEXUS_VERSION 2.14.3-02
+ENV NEXUS_HOME /opt/nexus
+RUN yum -y install java-1.8.0-openjdk-devel rsync --nodocs && \
+    yum -y clean all && \
+    groupadd nexus -f -g 1001 && \
+    useradd -u 1001 -g nexus -m -d ${NEXUS_HOME} -s /sbin/nologin -c "Nexus User" nexus
+COPY ["./nexus-2.14.3-02-bundle.tar.gz","./nexus-start.sh", "${NEXUS_HOME}/"]
+RUN tar -C ${NEXUS_HOME}/ -zxpf ${NEXUS_HOME}/nexus-2.14.3-02-bundle.tar.gz && \
+    ln -s ${NEXUS_HOME}/nexus-${NEXUS_VERSION} ${NEXUS_HOME}/nexus2 && \
+    mkdir -p /opt/nexus/sonatype-work && \
+    chown -R nexus:nexus ${NEXUS_HOME} && \
+    chmod 755 ${NEXUS_HOME}
+VOLUME /opt/nexus/sonatype-work
+WORKDIR /opt/nexus
+USER nexus
+CMD ["sh","nexus-start.sh"]
+
